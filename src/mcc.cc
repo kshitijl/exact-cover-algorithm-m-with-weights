@@ -26,6 +26,7 @@ struct Node {
   size_t bound;
   int top_or_len;
   int color = 0;
+  int weight = 0;
 };
 
 #define NAME(i) (nodes[i].name)
@@ -38,6 +39,7 @@ struct Node {
 #define COLOR(i) (nodes[i].color)
 #define SLACK(i) (nodes[i].slack)
 #define BOUND(i) (nodes[i].bound)
+#define WEIGHT(i) (nodes[i].weight)
 #define MAX_LINE_SIZE (100000)
 
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
@@ -59,8 +61,8 @@ struct MCC {
     for (const Node &n : nodes) {
       oss << i << ": { " << n.name << " l: " << n.llink << " r: " << n.rlink
           << " u: " << n.ulink << " d: " << n.dlink << " t: " << n.top_or_len
-          << " c: " << n.color << " s: " << n.slack << " b: " << n.bound << " }"
-          << std::endl;
+          << " c: " << n.color << " s: " << n.slack << " b: " << n.bound
+          << " w: " << n.weight << " }" << std::endl;
       ++i;
     }
     return oss.str();
@@ -81,6 +83,20 @@ struct MCC {
     }
     *curr = ss;
     return 0;
+  }
+
+  std::tuple<int, bool> weight_parse(char *ss, std::string *curr) {
+    for (size_t i = 0; ss[i] != 0; ++i) {
+      if (ss[i] == '=') {
+        *curr = std::string(ss, i);
+        std::string weight_s(&ss[i + 1]);
+        int weight = std::stoi(weight_s);
+        CHECK(weight >= 1) << "Bad weight: " << weight;
+        return {weight, true};
+      }
+    }
+    *curr = ss;
+    return {1, false};
   }
 
   void multiplicity_parse(std::string *curr, size_t *low, size_t *high) {
@@ -199,8 +215,20 @@ struct MCC {
       int offset = 0, r = 0, cnum = 0;
       std::string curr;
       while (sscanf(s + offset, " %s %n", ss, &r) > 0) {
-        cnum = color_parse(ss, color_ids, next_color, &curr);
+        auto [weight, parsed_weight] = weight_parse(ss, &curr);
+        LOG(2) << "Parsed weight: " << weight;
+
+        // Don't attempt parsing color if a weight was parsed, otherwise
+        // color_parse will reset the curr to ss and we'll think that "a=w" is
+        // the name of the item, leading to an error.
+        if (parsed_weight) {
+          cnum = 0;
+        } else {
+          cnum = color_parse(ss, color_ids, next_color, &curr);
+        }
+
         next_color = std::max(next_color, cnum + 1);
+
         if (curr[0] == '/' && curr.size() > 1 && curr[1] == '/')
           break;
         if (curr == "\\")
@@ -215,6 +243,10 @@ struct MCC {
             << "Duplicate item '" << curr << "'";
         seen.insert(curr);
         LEN(i)++;
+
+        // For each item, weight = sum of weights of options.
+        WEIGHT(i) += weight;
+
         size_t q = ULINK(i);
         nodes.push_back(Node());
         CHECK(nodes.size() > p + j) << "Not enough nodes allocated. Want "
@@ -225,6 +257,7 @@ struct MCC {
         ULINK(i) = p + j;
         TOP(p + j) = i;
         COLOR(p + j) = cnum;
+        WEIGHT(p + j) = weight;
       }
       if (curr == "\\" || seen.empty())
         continue;
@@ -241,6 +274,7 @@ struct MCC {
       seen.clear();
       j = 0;
     }
+
     LOG(1) << "Parsed " << color_ids.size() << " colors";
     LOG(1) << "Parsed " << num_options << " options";
 
