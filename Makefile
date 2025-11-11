@@ -6,7 +6,7 @@ LDFLAGS=-g
 LDLIBS=
 RM=rm -f
 
-all: bin/xc bin/xcc bin/mcc bin/dc
+all: bin/xc bin/xcc bin/mcc bin/dc bin/mccw
 
 bin/xc: src/xc.cc src/logging.h src/counters.h src/flags.h src/params.h
 	g++ $(CPPFLAGS) -o bin/xc src/xc.cc $(LDLIBS)
@@ -17,6 +17,9 @@ bin/xcc: src/xcc.cc src/logging.h src/counters.h src/flags.h src/params.h
 bin/mcc: src/mcc.cc src/logging.h src/counters.h src/flags.h src/params.h
 	g++ $(CPPFLAGS) -o bin/mcc src/mcc.cc $(LDLIBS)
 
+bin/mccw: src/mccw.cc src/logging.h src/counters.h src/flags.h src/params.h
+	g++ $(CPPFLAGS) -o bin/mccw src/mccw.cc $(LDLIBS)
+
 bin/dc: src/dc.cc src/logging.h src/counters.h src/flags.h src/params.h
 	g++ $(CPPFLAGS) -o bin/dc src/dc.cc $(LDLIBS)
 
@@ -25,5 +28,6 @@ clean:
 	$(RM) bin/xcc
 	$(RM) bin/mcc
 	$(RM) bin/dc
+	$(RM) bin/mccw
 	$(RM) *~
 	$(RM) */*~
