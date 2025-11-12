@@ -307,6 +307,7 @@ struct MCC {
       DLINK(u) = d;
       ULINK(d) = u;
       // q is an option node, x is its item.
+      assert(LEN(x) >= WEIGHT(q));
       LEN(x) -= WEIGHT(q);
     }
   }
@@ -401,6 +402,7 @@ struct MCC {
     size_t d = DLINK(x);
     DLINK(p) = d;
     ULINK(d) = p;
+    assert(LEN(p) >= WEIGHT(x));
     LEN(p) -= WEIGHT(x);
   }
 
@@ -504,6 +506,8 @@ struct MCC {
       } else {
         uncommit(p, j);
       }
+
+      assert(p > 0);
       --p;
     } while (p != (x - 1));
   }
@@ -514,6 +518,7 @@ struct MCC {
       // M9. [Leave level l.]
       if (l == 0)
         return false;
+      assert(l > 0);
       --l;
       if (choice[l] <= num_items) {
         i = choice[l];
@@ -606,8 +611,8 @@ struct MCC {
       assert(TOP(choice[l]) == i);
       assert(WEIGHT(choice[l]) <= BOUND(i));
 
-      int remaining_bound = BOUND(i) - WEIGHT(choice[l]);
-      int remaining_options_weight = LEN(i) - WEIGHT(choice[l]);
+      int remaining_bound = (int)BOUND(i) - (int)WEIGHT(choice[l]);
+      int remaining_options_weight = (int)LEN(i) - (int)WEIGHT(choice[l]);
 
       if (remaining_bound - remaining_options_weight > (int)SLACK(i)) {
         /* Not enough remaining weight; abort this branch. */
