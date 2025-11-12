@@ -568,52 +568,57 @@ struct MCC {
     Really we should split this into two cases:
     1. There are no more options to try: either we're satisfying or not
     2. There are more options to try. Figure out if we can ever satisfy
-    */
-    int real_bound = (int)BOUND(i) - (int)WEIGHT(choice[l]);
-    // int real_bound = (int)BOUND(i);
-    if (choice[l] == i) {
-      real_bound = (int)BOUND(i);
-    }
-    // M5. [Possibly tweak x_l.]
 
+    The semantics of BOUND are: it's the total remaining BOUND on i *before*
+    trying any options at this level.
+    */
+    // M5. [Possibly tweak x_l.]
     LOG(2) << "should try: l = " << l << ", i = " << i
            << ", choice[l] = " << choice[l] << ", BOUND(i) = " << BOUND(i)
-           << ", SLACK(i) = " << SLACK(i) << ", LEN(i) = " << LEN(i)
-           << ", real_bound = " << real_bound;
-    if (real_bound == 0 && SLACK(i) == 0) {
-      if (choice[l] == i)
+           << ", SLACK(i) = " << SLACK(i) << ", LEN(i) = " << LEN(i);
+
+    assert(i <= num_items);
+    assert(i <= num_primary_items);
+
+    if (choice[l] == i) {
+      LOG(2) << "No more options to try.";
+
+      if (BOUND(i) >= 0 && SLACK(i) >= BOUND(i)) {
+        /* Currently within limits; we should deactivate this item and
+         * potentially visit the solution if there are no more items. */
+        size_t p = LLINK(i);
+        size_t q = RLINK(i);
+        RLINK(p) = q;
+        LLINK(q) = p;
+        return true;
+      } else {
+        /* Currently not within limits, and since there are no more options, we
+         * never will be. Do not deactivate this item, and therefore do not
+         * visit solutions. */
         return false;
-    } else if ((real_bound != 0 || SLACK(i) != 0) &&
-               LEN(i) <= real_bound - (int)SLACK(i)) {
-      /*
-      What if we split this into two cases:
-      1. Can the remainder ever satisfy
-      2. Are we currently satisfy
-      */
-      /*
-      Right now BOUND is too high coming into this function, even in the
-      choice[l] == i case. So we think it's never gonna happen buddy. But
-      actually we're in a satisfying state.
-      TODO we should figure out the TRUE SEMANTICS OF BOUND and make sure to
-      uphold them. What are the invariants on BOUND at various points? Coming
-      into this function, what does BOUND mean?
-      */
-      LOG(2) << "it's never gonna happen buddy";
-      return false;
-    } else if (choice[l] != i) {
-      tweak(choice[l], i);
-    } else if (BOUND(i) != 0) {
-      assert(choice[l] == i);
-      LOG(2) << "we're in the choice[l] == i case, there are no more options "
-                "left to try. real_bound == "
-             << real_bound << ", BOUND = " << BOUND(i) << ", WEIGHT is "
-             << WEIGHT(choice[l]);
-      size_t p = LLINK(i);
-      size_t q = RLINK(i);
-      RLINK(p) = q;
-      LLINK(q) = p;
+      }
+    } else {
+      LOG(2) << "Yes more options to try.";
+
+      assert(TOP(choice[l]) == i);
+      assert(WEIGHT(choice[l]) <= BOUND(i));
+
+      int remaining_bound = BOUND(i) - WEIGHT(choice[l]);
+      int remaining_options_weight = LEN(i) - WEIGHT(choice[l]);
+
+      if (remaining_bound - remaining_options_weight > SLACK(i)) {
+        /* Not enough remaining weight; abort this branch. */
+        return false;
+      } else {
+        /* We have more options, and there's enough remaining weight on them
+         * that we could possibly end up within limits. Deactivate this option;
+         * the calling function will then include it in the solution (hide all
+         * conflicting options) and potentially visit solutions.
+         */
+        tweak(choice[l], i);
+        return true;
+      }
     }
-    return true;
   }
 
   size_t choose_item(size_t l) {
