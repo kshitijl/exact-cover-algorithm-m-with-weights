@@ -765,8 +765,14 @@ struct MCC {
   }
 
   void solve() {
+    std::string memory_before = debug_nodes();
     solve_();
     LOG(2) << "At the end, memory is " << debug_nodes();
+    std::string memory_after = debug_nodes();
+
+    if (memory_before != memory_after) {
+      CHECK(false) << "memory different!";
+    }
   }
 };
 
