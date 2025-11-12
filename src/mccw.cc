@@ -472,7 +472,6 @@ struct MCC {
   // x: an option node
   void try_option(size_t x) {
     LOG(2) << "try_option called on node " << x;
-    assert(can_try_option(x));
 
     size_t p = x;
 
@@ -651,7 +650,8 @@ struct MCC {
     size_t i = RLINK(0);
     INC(choices);
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
-      int s = monus(REMAINING_WEIGHT(p) + 1, monus(BOUND(p), SLACK(p)));
+      // int s = monus(REMAINING_WEIGHT(p) + 1, monus(BOUND(p), SLACK(p)));
+      int s = LEN(p) + 1;
       if ((PARAM_prefer_sharp && s > 1 && NAME(p)[0] != '#') ||
           (PARAM_prefer_unsharp && s > 1 && NAME(p)[0] == '#')) {
         s += num_options;
