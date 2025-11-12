@@ -3,6 +3,7 @@
 #include "logging.h"
 #include "params.h"
 
+#include <assert.h>
 #include <cctype>
 #include <iomanip>
 #include <sstream>
@@ -474,17 +475,55 @@ struct MCC {
     }
   }
 
+  /*
+  One precondition for entering this:
+  If an item is in a satisfying state and BOUND = 0 and there are no more
+  options to try, then it will be unlinked.
+  */
   bool should_try(size_t l, size_t i) {
+    int real_bound = (int)BOUND(i) - (int)WEIGHT(choice[l]);
+
+    LOG(2) << "should try: l = " << l << ", i = " << i
+           << ", choice[l] = " << choice[l] << ", BOUND(i) = " << BOUND(i)
+           << ", SLACK(i) = " << SLACK(i) << ", LEN(i) = " << LEN(i)
+           << ", real_bound = " << real_bound;
     // M5. [Possibly tweak x_l.]
     if (BOUND(i) == 0 && SLACK(i) == 0) {
       if (choice[l] == i)
         return false;
     } else if ((BOUND(i) != 0 || SLACK(i) != 0) &&
                LEN(i) <= (int)BOUND(i) - (int)SLACK(i)) {
+      LOG(2) << "it's never gonna happen buddy";
       return false;
     } else if (choice[l] != i) {
       tweak(choice[l], i);
     } else if (BOUND(i) != 0) {
+      /*
+      This case is actually kind of like:
+      THIS is how we end up recognizing solutions that are in limits but not
+      at bound.
+
+      At lower values of level l is where we actually select the item.
+
+      Then at a higher value of level l of the search tree, the cursor will move
+      past the bottom and wrap around. So choice[l] = i.
+
+      The condition above will catch if we're not within limits.
+
+      So we get here if we are IN LIMITS but not BOUND = 0.
+
+      We only wanna do this if bound = 0 because if bound = 0 then we've already
+      unlinked item i.
+
+      So we kinda finish the job here: if item i is in a satisfying state, and
+      there's no more options to try for item i, but we haven't already unlinked
+      it, then unlink it because there's nothing more to try for it.
+        */
+      assert(choice[l] == i);
+      LOG(2) << "we're in the choice[l] == i case, we've tried everything "
+                "basically. real_bound == "
+             << real_bound << ", BOUND = " << BOUND(i) << ", WEIGHT is "
+             << WEIGHT(choice[l]);
       size_t p = LLINK(i);
       size_t q = RLINK(i);
       RLINK(p) = q;
@@ -514,7 +553,8 @@ struct MCC {
     INC(score, theta);
     score[l] = theta;
     ft[l] = 0;
-    LOG(2) << "Chose i=" << i << " (" << NAME(i) << ")";
+    LOG(2) << "Chose i=" << i << " (" << NAME(i) << ")"
+           << " with BOUND = " << BOUND(i);
     return i;
   }
 
@@ -574,6 +614,9 @@ struct MCC {
         choice[l] = DLINK(i);
         if (--BOUND(i) == 0)
           cover(i);
+        if (RLINK(0) == 0) {
+          LOG(2) << "RLINK(0) = 0";
+        }
         if (BOUND(i) != 0 || SLACK(i) != 0)
           ft[l] = choice[l];
       }
@@ -582,6 +625,11 @@ struct MCC {
         LOG_EVERY_N_SECS_T(0, 1)
             << "sols: " << GETCOUNTER(solutions)
             << " done: " << std::setprecision(3) << progress(l) << "%";
+
+        if (choice[l] == i) {
+          LOG(2) << "choice[" << l << "] = i at " << i
+                 << ", RLINK(0) = " << RLINK(0) << ", BOUND(i) = " << BOUND(i);
+        }
 
         if (should_try(l, i)) {
           // M6. [Try x_l.]

@@ -458,9 +458,6 @@ struct MCC {
     LOG(2) << "Tweaked " << k << " illegal options.";
   }
 
-  /* TODO: current question is why does b get chosen again? why don't we
-   * subtract BOUND from it? and why don't we cover it?
-   */
   // x: an option node
   void try_option(size_t x) {
     LOG(2) << "try_option called on node " << x;
@@ -549,22 +546,66 @@ struct MCC {
   So maybe should_try should tweak in a loop? Until it's exhausted every option,
   and then return false? Yes.
   */
+  /*
+  TODO: the current question is: when we eventually get to the choice[l] == i
+  case, and we're under bound, what is supposed to happen?
+
+  Answer: the actual choices to put us in a satisfying state have happened above
+  us. If BOUND(i) == 0 then we would have covered before getting here. If we are
+  not in a satisfying state then the "return false" below will fire.
+
+  So if there are no more options to try, and we're in a satisfying state, and
+  we haven't already covered, then we should cover here because this item is no
+  longer active.
+  */
+  /*
+  If choice[l] = i i.e. no more options to try, then:
+   * if currently satisfying then cover item
+   * if currently not satisfying then don't cover and return false
+  */
   bool should_try(size_t l, size_t i) {
+    /*
+    Really we should split this into two cases:
+    1. There are no more options to try: either we're satisfying or not
+    2. There are more options to try. Figure out if we can ever satisfy
+    */
     int real_bound = (int)BOUND(i) - (int)WEIGHT(choice[l]);
+    // int real_bound = (int)BOUND(i);
+    if (choice[l] == i) {
+      real_bound = (int)BOUND(i);
+    }
     // M5. [Possibly tweak x_l.]
+
+    LOG(2) << "should try: l = " << l << ", i = " << i
+           << ", choice[l] = " << choice[l] << ", BOUND(i) = " << BOUND(i)
+           << ", SLACK(i) = " << SLACK(i) << ", LEN(i) = " << LEN(i)
+           << ", real_bound = " << real_bound;
     if (real_bound == 0 && SLACK(i) == 0) {
       if (choice[l] == i)
         return false;
     } else if ((real_bound != 0 || SLACK(i) != 0) &&
                LEN(i) <= real_bound - (int)SLACK(i)) {
+      /*
+      What if we split this into two cases:
+      1. Can the remainder ever satisfy
+      2. Are we currently satisfy
+      */
+      /*
+      Right now BOUND is too high coming into this function, even in the
+      choice[l] == i case. So we think it's never gonna happen buddy. But
+      actually we're in a satisfying state.
+      TODO we should figure out the TRUE SEMANTICS OF BOUND and make sure to
+      uphold them. What are the invariants on BOUND at various points? Coming
+      into this function, what does BOUND mean?
+      */
       LOG(2) << "it's never gonna happen buddy";
       return false;
     } else if (choice[l] != i) {
       tweak(choice[l], i);
-    } else if (real_bound != 0) {
+    } else if (BOUND(i) != 0) {
       assert(choice[l] == i);
-      LOG(2) << "we're in the choice[l] == i case, we've tried everything "
-                "basically. real_bound == "
+      LOG(2) << "we're in the choice[l] == i case, there are no more options "
+                "left to try. real_bound == "
              << real_bound << ", BOUND = " << BOUND(i) << ", WEIGHT is "
              << WEIGHT(choice[l]);
       size_t p = LLINK(i);
