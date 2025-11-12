@@ -41,6 +41,7 @@ struct Node {
 #define SLACK(i) (nodes[i].slack)
 #define BOUND(i) (nodes[i].bound)
 #define WEIGHT(i) (nodes[i].weight)
+#define REMAINING_WEIGHT(i) (nodes[i].weight)
 #define MAX_LINE_SIZE (100000)
 
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
@@ -197,6 +198,7 @@ struct MCC {
 
     // I3. [Prepare for options.]
     for (size_t i = 1; i < nodes.size(); ++i) {
+      REMAINING_WEIGHT(i) = 0;
       LEN(i) = 0;
       ULINK(i) = DLINK(i) = i;
     }
@@ -243,11 +245,10 @@ struct MCC {
         CHECK(seen.find(curr) == seen.end())
             << "Duplicate item '" << curr << "'";
         seen.insert(curr);
-        // LEN(i)++;
 
         // For each item, weight = sum of weights of options.
-        WEIGHT(i) += weight;
-        LEN(i) = WEIGHT(i);
+        REMAINING_WEIGHT(i) += weight;
+        LEN(i)++;
 
         size_t q = ULINK(i);
         nodes.push_back(Node());
@@ -307,8 +308,10 @@ struct MCC {
       DLINK(u) = d;
       ULINK(d) = u;
       // q is an option node, x is its item.
-      assert(LEN(x) >= WEIGHT(q));
-      LEN(x) -= WEIGHT(q);
+      assert(REMAINING_WEIGHT(x) >= WEIGHT(q));
+      REMAINING_WEIGHT(x) -= WEIGHT(q);
+      assert(LEN(x) >= 1);
+      LEN(x) -= 1;
     }
   }
 
@@ -327,7 +330,8 @@ struct MCC {
       } // q was a spacer.
       DLINK(u) = q;
       ULINK(d) = q;
-      LEN(x) += WEIGHT(q);
+      REMAINING_WEIGHT(x) += WEIGHT(q);
+      LEN(x) += 1;
     }
   }
 
@@ -402,8 +406,10 @@ struct MCC {
     size_t d = DLINK(x);
     DLINK(p) = d;
     ULINK(d) = p;
-    assert(LEN(p) >= WEIGHT(x));
-    LEN(p) -= WEIGHT(x);
+    assert(REMAINING_WEIGHT(p) >= WEIGHT(x));
+    REMAINING_WEIGHT(p) -= WEIGHT(x);
+    assert(LEN(p) >= 1);
+    LEN(p) -= 1;
   }
 
   void untweak(size_t a, size_t i) {
@@ -413,17 +419,20 @@ struct MCC {
     size_t z = DLINK(p);
     DLINK(p) = x;
     size_t k = 0;
+    size_t num_items_added = 0;
     while (x != z) {
       ULINK(x) = y;
       // ++k;
       k += WEIGHT(x);
+      num_items_added++;
       if (!special)
         unhide(x);
       y = x;
       x = DLINK(x);
     }
     ULINK(z) = y;
-    LEN(p) += k;
+    REMAINING_WEIGHT(p) += k;
+    LEN(p) += num_items_added;
     if (special)
       uncover(p);
   }
@@ -583,7 +592,8 @@ struct MCC {
     // M5. [Possibly tweak x_l.]
     LOG(2) << "should try: l = " << l << ", i = " << i
            << ", choice[l] = " << choice[l] << ", BOUND(i) = " << BOUND(i)
-           << ", SLACK(i) = " << SLACK(i) << ", LEN(i) = " << LEN(i);
+           << ", SLACK(i) = " << SLACK(i)
+           << ", REMAINING_WEIGHT(i) = " << REMAINING_WEIGHT(i);
 
     assert(i <= num_items);
     assert(i <= num_primary_items);
@@ -612,7 +622,8 @@ struct MCC {
       assert(WEIGHT(choice[l]) <= BOUND(i));
 
       int remaining_bound = (int)BOUND(i) - (int)WEIGHT(choice[l]);
-      int remaining_options_weight = (int)LEN(i) - (int)WEIGHT(choice[l]);
+      int remaining_options_weight =
+          (int)REMAINING_WEIGHT(i) - (int)WEIGHT(choice[l]);
 
       if (remaining_bound - remaining_options_weight > (int)SLACK(i)) {
         /* Not enough remaining weight; abort this branch. */
@@ -640,13 +651,14 @@ struct MCC {
     size_t i = RLINK(0);
     INC(choices);
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
-      int s = monus(LEN(p) + 1, monus(BOUND(p), SLACK(p)));
+      int s = monus(REMAINING_WEIGHT(p) + 1, monus(BOUND(p), SLACK(p)));
       if ((PARAM_prefer_sharp && s > 1 && NAME(p)[0] != '#') ||
           (PARAM_prefer_unsharp && s > 1 && NAME(p)[0] == '#')) {
         s += num_options;
       }
       if (s < theta || (s == theta && SLACK(p) < SLACK(i)) ||
-          (s == theta && SLACK(p) == SLACK(i) && LEN(p) > LEN(i))) {
+          (s == theta && SLACK(p) == SLACK(i) &&
+           REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
         theta = s;
         i = p;
         if (theta == 0)
