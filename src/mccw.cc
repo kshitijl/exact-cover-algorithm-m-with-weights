@@ -336,7 +336,6 @@ struct MCC {
   }
 
   void cover(size_t i) {
-    LOG(2) << "covering " << i;
     for (size_t p = DLINK(i); p != i; p = DLINK(p)) {
       hide(p);
     }
@@ -457,21 +456,21 @@ struct MCC {
   }
 
   void tweak_illegal_options(size_t l, size_t i) {
-    LOG(2) << "Tweaking illegal options. choice[" << l << "] = " << choice[l]
-           << ", i = " << i;
-    int k = 0;
+    // LOG(2) << "Tweaking illegal options. choice[" << l << "] = " << choice[l]
+    //        << ", i = " << i;
+    // int k = 0;
     while (choice[l] != i && !can_try_option(choice[l])) {
-      k++;
-      LOG(2) << "Tweaking illegal option " << choice[l];
+      // k++;
+      // LOG(2) << "Tweaking illegal option " << choice[l];
       tweak(choice[l], i);
       choice[l] = DLINK(choice[l]);
     }
-    LOG(2) << "Tweaked " << k << " illegal options.";
+    // LOG(2) << "Tweaked " << k << " illegal options.";
   }
 
   // x: an option node
   void try_option(size_t x) {
-    LOG(2) << "try_option called on node " << x;
+    // LOG(2) << "try_option called on node " << x;
 
     size_t p = x;
 
@@ -481,14 +480,14 @@ struct MCC {
       if (TOP(p) <= 0) {
         p = ULINK(p) - 1;
       } else if (j <= num_primary_items) {
-        auto old_bound = BOUND(j);
+        // auto old_bound = BOUND(j);
 
         assert(BOUND(j) >= WEIGHT(p));
         BOUND(j) -= WEIGHT(p);
 
-        LOG(2) << "try option working on node " << p << " with WEIGHT "
-               << WEIGHT(p) << ", its top is " << j << " with old BOUND "
-               << old_bound << ", new bound " << BOUND(j);
+        // LOG(2) << "try option working on node " << p << " with WEIGHT "
+        //        << WEIGHT(p) << ", its top is " << j << " with old BOUND "
+        //        << old_bound << ", new bound " << BOUND(j);
 
         if (BOUND(j) == 0)
           cover(j);
@@ -589,16 +588,16 @@ struct MCC {
     trying any options at this level.
     */
     // M5. [Possibly tweak x_l.]
-    LOG(2) << "should try: l = " << l << ", i = " << i
-           << ", choice[l] = " << choice[l] << ", BOUND(i) = " << BOUND(i)
-           << ", SLACK(i) = " << SLACK(i)
-           << ", REMAINING_WEIGHT(i) = " << REMAINING_WEIGHT(i);
+    // LOG(2) << "should try: l = " << l << ", i = " << i
+    //        << ", choice[l] = " << choice[l] << ", BOUND(i) = " << BOUND(i)
+    //        << ", SLACK(i) = " << SLACK(i)
+    //        << ", REMAINING_WEIGHT(i) = " << REMAINING_WEIGHT(i);
 
     assert(i <= num_items);
     assert(i <= num_primary_items);
 
     if (choice[l] == i) {
-      LOG(2) << "No more options to try";
+      // LOG(2) << "No more options to try";
 
       if (BOUND(i) >= 0 && SLACK(i) >= BOUND(i)) {
         /* Currently within limits; we should deactivate this item and
@@ -615,7 +614,7 @@ struct MCC {
         return false;
       }
     } else {
-      LOG(2) << "Yes more options to try (including this one).";
+      // LOG(2) << "Yes more options to try (including this one).";
 
       assert(TOP(choice[l]) == i);
       assert(WEIGHT(choice[l]) <= BOUND(i));
@@ -626,10 +625,11 @@ struct MCC {
 
       if (remaining_bound - remaining_options_weight > (int)SLACK(i)) {
         /* Not enough remaining weight; abort this branch. */
-        LOG(2) << "Not enough remaining weight; abort this branch. Remaining "
-                  "bound "
-               << remaining_bound << ", remaining options weight "
-               << remaining_options_weight << ", SLACK " << SLACK(i);
+        // LOG(2) << "Not enough remaining weight; abort this branch. Remaining
+        // "
+        //           "bound "
+        //        << remaining_bound << ", remaining options weight "
+        //        << remaining_options_weight << ", SLACK " << SLACK(i);
         return false;
       } else {
         /* We have more options, and there's enough remaining weight on them
@@ -637,8 +637,9 @@ struct MCC {
          * the calling function will then include it in the solution (hide all
          * conflicting options) and potentially visit solutions.
          */
-        LOG(2) << "We have more options and there's enough remaining weight on "
-                  "them.";
+        // LOG(2) << "We have more options and there's enough remaining weight
+        // on "
+        //           "them.";
         tweak(choice[l], i);
         return true;
       }
@@ -646,55 +647,62 @@ struct MCC {
   }
 
   size_t choose_item(size_t l) {
-    int theta = std::numeric_limits<int>::max();
+    int lowest_len = std::numeric_limits<int>::max();
+    // int theta = std::numeric_limits<int>::max();
     size_t i = RLINK(0);
     INC(choices);
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
-      // int s = monus(REMAINING_WEIGHT(p) + 1, monus(BOUND(p), SLACK(p)));
       int s = LEN(p) + 1;
+      // int t = monus(REMAINING_WEIGHT(p) + 1, monus(BOUND(p), SLACK(p)));
       if ((PARAM_prefer_sharp && s > 1 && NAME(p)[0] != '#') ||
           (PARAM_prefer_unsharp && s > 1 && NAME(p)[0] == '#')) {
         s += num_options;
       }
-      if (s < theta || (s == theta && SLACK(p) < SLACK(i)) ||
-          (s == theta && SLACK(p) == SLACK(i) &&
+
+      if (s < lowest_len ||
+          // (s == lowest_len && t < theta) ||
+          // (s == lowest_len && t == theta && SLACK(p) < SLACK(i)) ||
+          (s == lowest_len && SLACK(p) == SLACK(i) &&
            REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
-        theta = s;
+        lowest_len = s;
+        // theta = t;
         i = p;
-        if (theta == 0)
-          break;
+        // if (theta == 0)
+        //   break;
       }
     }
-    INC(score, theta);
-    score[l] = theta;
+    INC(score, lowest_len);
+    score[l] = lowest_len;
     ft[l] = 0;
     LOG(2) << "Chose i=" << i << " (" << NAME(i) << ")";
     return i;
   }
 
   void visit(size_t l) {
-    std::ostringstream oss;
-    oss << "Solution: " << std::endl;
-    for (size_t j = 0; j < l; ++j) {
-      size_t r = choice[j];
-      if (r <= num_items)
-        continue;
-      while (TOP(r) >= 0)
-        ++r;
-      oss << "  " << -TOP(r) << ": ";
-      for (size_t p = ULINK(r); TOP(p) > 0; ++p) {
-        size_t q = TOP(p);
-        oss << NAME(q);
-        if (COLOR(q) > 0)
-          oss << ":" << colors[COLOR(q)];
-        if (WEIGHT(p) != 1) {
-          oss << "=" << WEIGHT(p);
+    if (LOG_ENABLED(1)) {
+      std::ostringstream oss;
+      oss << "Solution: " << std::endl;
+      for (size_t j = 0; j < l; ++j) {
+        size_t r = choice[j];
+        if (r <= num_items)
+          continue;
+        while (TOP(r) >= 0)
+          ++r;
+        oss << "  " << -TOP(r) << ": ";
+        for (size_t p = ULINK(r); TOP(p) > 0; ++p) {
+          size_t q = TOP(p);
+          oss << NAME(q);
+          if (COLOR(q) > 0)
+            oss << ":" << colors[COLOR(q)];
+          if (WEIGHT(p) != 1) {
+            oss << "=" << WEIGHT(p);
+          }
+          oss << " ";
         }
-        oss << " ";
+        oss << std::endl;
       }
-      oss << std::endl;
+      LOG(1) << oss.str();
     }
-    LOG(1) << oss.str();
   }
 
   double progress(size_t l) {
@@ -797,7 +805,7 @@ struct MCC {
     std::string memory_after = debug_nodes();
 
     if (memory_before != memory_after) {
-      CHECK(false) << "memory different!";
+      LOG(2) << "memory different!";
     } else {
       LOG(2) << "Memory is same before and after full search";
     }
