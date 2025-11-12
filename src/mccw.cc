@@ -471,12 +471,15 @@ struct MCC {
       if (TOP(p) <= 0) {
         p = ULINK(p) - 1;
       } else if (j <= num_primary_items) {
-        LOG(2) << "try option working on node " << p << " with WEIGHT "
-               << WEIGHT(p) << ", its top is " << j << " with BOUND "
-               << BOUND(j);
+        auto old_bound = BOUND(j);
 
         assert(BOUND(j) >= WEIGHT(p));
         BOUND(j) -= WEIGHT(p);
+
+        LOG(2) << "try option working on node " << p << " with WEIGHT "
+               << WEIGHT(p) << ", its top is " << j << " with old BOUND "
+               << old_bound << ", new bound " << BOUND(j);
+
         if (BOUND(j) == 0)
           cover(j);
       } else {
@@ -581,7 +584,7 @@ struct MCC {
     assert(i <= num_primary_items);
 
     if (choice[l] == i) {
-      LOG(2) << "No more options to try.";
+      LOG(2) << "No more options to try";
 
       if (BOUND(i) >= 0 && SLACK(i) >= BOUND(i)) {
         /* Currently within limits; we should deactivate this item and
@@ -598,7 +601,7 @@ struct MCC {
         return false;
       }
     } else {
-      LOG(2) << "Yes more options to try.";
+      LOG(2) << "Yes more options to try (including this one).";
 
       assert(TOP(choice[l]) == i);
       assert(WEIGHT(choice[l]) <= BOUND(i));
@@ -606,8 +609,12 @@ struct MCC {
       int remaining_bound = BOUND(i) - WEIGHT(choice[l]);
       int remaining_options_weight = LEN(i) - WEIGHT(choice[l]);
 
-      if (remaining_bound - remaining_options_weight > SLACK(i)) {
+      if (remaining_bound - remaining_options_weight > (int)SLACK(i)) {
         /* Not enough remaining weight; abort this branch. */
+        LOG(2) << "Not enough remaining weight; abort this branch. Remaining "
+                  "bound "
+               << remaining_bound << ", remaining options weight "
+               << remaining_options_weight << ", SLACK " << SLACK(i);
         return false;
       } else {
         /* We have more options, and there's enough remaining weight on them
@@ -615,6 +622,8 @@ struct MCC {
          * the calling function will then include it in the solution (hide all
          * conflicting options) and potentially visit solutions.
          */
+        LOG(2) << "We have more options and there's enough remaining weight on "
+                  "them.";
         tweak(choice[l], i);
         return true;
       }
@@ -772,6 +781,8 @@ struct MCC {
 
     if (memory_before != memory_after) {
       CHECK(false) << "memory different!";
+    } else {
+      LOG(2) << "Memory is same before and after full search";
     }
   }
 };
