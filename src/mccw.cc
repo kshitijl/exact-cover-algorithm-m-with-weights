@@ -28,6 +28,9 @@ struct Node {
   int top_or_len;
   int color = 0;
   int weight = 0;
+  int num_legal_options = 0;
+  bool nlo_dirty = true;
+  bool has_weighted_options = false;
 };
 
 #define NAME(i) (nodes[i].name)
@@ -42,6 +45,9 @@ struct Node {
 #define BOUND(i) (nodes[i].bound)
 #define WEIGHT(i) (nodes[i].weight)
 #define REMAINING_WEIGHT(i) (nodes[i].weight)
+#define NUM_LEGAL_OPTIONS(i) (nodes[i].num_legal_options)
+#define NLO_DIRTY(i) (nodes[i].nlo_dirty)
+#define HAS_WEIGHTED_OPTIONS(i) (nodes[i].has_weighted_options)
 #define MAX_LINE_SIZE (100000)
 
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
@@ -246,9 +252,14 @@ struct MCC {
             << "Duplicate item '" << curr << "'";
         seen.insert(curr);
 
+        CHECK(weight >= 1) << "Bad weight: " << weight;
+
         // For each item, weight = sum of weights of options.
         REMAINING_WEIGHT(i) += weight;
         LEN(i)++;
+        if (weight > 1) {
+          HAS_WEIGHTED_OPTIONS(i) = true;
+        }
 
         size_t q = ULINK(i);
         nodes.push_back(Node());
@@ -491,6 +502,7 @@ struct MCC {
 
         if (BOUND(j) == 0)
           cover(j);
+
       } else {
         commit(p, j);
       }
@@ -507,9 +519,12 @@ struct MCC {
         p = DLINK(p) + 1;
       } else if (j <= num_primary_items) {
         // ++BOUND(j);
+        int old_bound = BOUND(j);
         BOUND(j) += WEIGHT(p);
-        if (BOUND(j) >= 1)
+        if (old_bound == 0) {
+          assert(BOUND(j) >= 1);
           uncover(j);
+        }
       } else {
         uncommit(p, j);
       }
@@ -541,6 +556,7 @@ struct MCC {
           untweak(ft[l], i);
         // TODO where's the --BOUND(p) corresponding to this?
         // ++BOUND(i); // -> M9
+
       } else {
         i = TOP(choice[l]);
         CHECK(static_cast<int>(i) == TOP(choice[l]));
@@ -652,9 +668,14 @@ struct MCC {
     INC(choices);
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
       int num_legal_options = 0;
-      for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
-        if (WEIGHT(o) <= BOUND(p)) {
-          num_legal_options += 1;
+
+      if (!HAS_WEIGHTED_OPTIONS(i)) {
+        num_legal_options = LEN(p);
+      } else {
+        for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
+          if (WEIGHT(o) <= BOUND(p)) {
+            num_legal_options += 1;
+          }
         }
       }
 
@@ -771,6 +792,7 @@ struct MCC {
         // Right now tweaking happens in should_try.
 
         tweak_illegal_options(l, i);
+
         if (should_try(l, i)) {
           // M6. [Try x_l.]
           LOG(2) << "Trying x_" << l << " = " << choice[l];
