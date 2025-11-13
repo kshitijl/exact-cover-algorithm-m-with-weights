@@ -760,9 +760,9 @@ struct MCC {
       }
 
       while (true) {
-        LOG_EVERY_N_SECS_T(0, 1)
-            << "sols: " << GETCOUNTER(solutions)
-            << " done: " << std::setprecision(3) << progress(l) << "%";
+        // LOG_EVERY_N_SECS_T(0, 1)
+        //     << "sols: " << GETCOUNTER(solutions)
+        //     << " done: " << std::setprecision(3) << progress(l) << "%";
 
         // We could simply try to have should_try return false if anything would
         // go over BOUND? Maybe another way to think of it is that we simply DO
