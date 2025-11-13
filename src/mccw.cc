@@ -647,32 +647,33 @@ struct MCC {
   }
 
   size_t choose_item(size_t l) {
-    int lowest_len = std::numeric_limits<int>::max();
-    // int theta = std::numeric_limits<int>::max();
+    int fewest_legal_options = std::numeric_limits<int>::max();
     size_t i = RLINK(0);
     INC(choices);
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
-      int s = LEN(p) + 1;
-      // int t = monus(REMAINING_WEIGHT(p) + 1, monus(BOUND(p), SLACK(p)));
+      int num_legal_options = 0;
+      for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
+        if (WEIGHT(o) <= BOUND(p)) {
+          num_legal_options += 1;
+        }
+      }
+
+      int s = num_legal_options + 1;
       if ((PARAM_prefer_sharp && s > 1 && NAME(p)[0] != '#') ||
           (PARAM_prefer_unsharp && s > 1 && NAME(p)[0] == '#')) {
         s += num_options;
       }
 
-      if (s < lowest_len ||
-          // (s == lowest_len && t < theta) ||
-          // (s == lowest_len && t == theta && SLACK(p) < SLACK(i)) ||
-          (s == lowest_len && SLACK(p) == SLACK(i) &&
+      if (s < fewest_legal_options ||
+          (s == fewest_legal_options && SLACK(p) < SLACK(i)) ||
+          (s == fewest_legal_options && SLACK(p) == SLACK(i) &&
            REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
-        lowest_len = s;
-        // theta = t;
+        fewest_legal_options = s;
         i = p;
-        // if (theta == 0)
-        //   break;
       }
     }
-    INC(score, lowest_len);
-    score[l] = lowest_len;
+    INC(score, fewest_legal_options);
+    score[l] = fewest_legal_options;
     ft[l] = 0;
     LOG(2) << "Chose i=" << i << " (" << NAME(i) << ")";
     return i;
