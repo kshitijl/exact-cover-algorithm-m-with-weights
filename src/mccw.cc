@@ -692,9 +692,8 @@ struct MCC {
           remaining_weight -= WEIGHT(o);
         }
 
-        // Add 1 for the null branch if we have slack
-        // (or if we're already satisfied: bound <= 0)
-        if (SLACK(p) > 0 || BOUND(p) == 0) {
+        // Add 1 for the null branch if we're already satisfied
+        if (BOUND(p) <= SLACK(p) && BOUND(p) >= 0) {
           branch_factor += 1;
         }
       }
