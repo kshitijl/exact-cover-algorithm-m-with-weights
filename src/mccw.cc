@@ -5,7 +5,6 @@
 
 #include <assert.h>
 #include <cctype>
-#include <iomanip>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -28,8 +27,6 @@ struct Node {
   int top_or_len;
   int color = 0;
   int weight = 0;
-  int num_legal_options = 0;
-  bool nlo_dirty = true;
   bool has_weighted_options = false;
 };
 
@@ -45,8 +42,6 @@ struct Node {
 #define BOUND(i) (nodes[i].bound)
 #define WEIGHT(i) (nodes[i].weight)
 #define REMAINING_WEIGHT(i) (nodes[i].weight)
-#define NUM_LEGAL_OPTIONS(i) (nodes[i].num_legal_options)
-#define NLO_DIRTY(i) (nodes[i].nlo_dirty)
 #define HAS_WEIGHTED_OPTIONS(i) (nodes[i].has_weighted_options)
 #define MAX_LINE_SIZE (100000)
 
@@ -206,7 +201,6 @@ struct MCC {
     for (size_t i = 1; i < nodes.size(); ++i) {
       REMAINING_WEIGHT(i) = 0;
       LEN(i) = 0;
-      NLO_DIRTY(i) = true;
       ULINK(i) = DLINK(i) = i;
     }
     size_t m = 0;
@@ -324,7 +318,6 @@ struct MCC {
       REMAINING_WEIGHT(x) -= WEIGHT(q);
       assert(LEN(x) >= 1);
       LEN(x) -= 1;
-      NLO_DIRTY(x) = true;
     }
   }
 
@@ -345,7 +338,6 @@ struct MCC {
       ULINK(d) = q;
       REMAINING_WEIGHT(x) += WEIGHT(q);
       LEN(x) += 1;
-      NLO_DIRTY(x) = true;
     }
   }
 
@@ -423,7 +415,6 @@ struct MCC {
     REMAINING_WEIGHT(p) -= WEIGHT(x);
     assert(LEN(p) >= 1);
     LEN(p) -= 1;
-    NLO_DIRTY(p) = true;
   }
 
   void untweak(size_t a, size_t i) {
@@ -447,7 +438,6 @@ struct MCC {
     ULINK(z) = y;
     REMAINING_WEIGHT(p) += k;
     LEN(p) += num_items_added;
-    NLO_DIRTY(i) = true;
     if (special)
       uncover(p);
   }
@@ -500,7 +490,6 @@ struct MCC {
 
         assert(BOUND(j) >= WEIGHT(p));
         BOUND(j) -= WEIGHT(p);
-        NLO_DIRTY(j) = true;
 
         // LOG(2) << "try option working on node " << p << " with WEIGHT "
         //        << WEIGHT(p) << ", its top is " << j << " with old BOUND "
@@ -527,7 +516,6 @@ struct MCC {
         // ++BOUND(j);
         int old_bound = BOUND(j);
         BOUND(j) += WEIGHT(p);
-        NLO_DIRTY(j) = true;
         if (old_bound == 0) {
           assert(BOUND(j) >= 1);
           uncover(j);
@@ -679,17 +667,10 @@ struct MCC {
       if (!HAS_WEIGHTED_OPTIONS(p)) {
         num_legal_options = LEN(p);
       } else {
-        if (NLO_DIRTY(p)) {
-          for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
-            if (WEIGHT(o) <= BOUND(p)) {
-              num_legal_options += 1;
-            }
+        for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
+          if (WEIGHT(o) <= BOUND(p)) {
+            num_legal_options += 1;
           }
-
-          NUM_LEGAL_OPTIONS(p) = num_legal_options;
-          NLO_DIRTY(p) = false;
-        } else {
-          num_legal_options = NUM_LEGAL_OPTIONS(p);
         }
       }
 
