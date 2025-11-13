@@ -500,7 +500,7 @@ struct MCC {
 
         assert(BOUND(j) >= WEIGHT(p));
         BOUND(j) -= WEIGHT(p);
-        NLO_DIRTY(p) = true;
+        NLO_DIRTY(j) = true;
 
         // LOG(2) << "try option working on node " << p << " with WEIGHT "
         //        << WEIGHT(p) << ", its top is " << j << " with old BOUND "
@@ -527,7 +527,7 @@ struct MCC {
         // ++BOUND(j);
         int old_bound = BOUND(j);
         BOUND(j) += WEIGHT(p);
-        NLO_DIRTY(p) = true;
+        NLO_DIRTY(j) = true;
         if (old_bound == 0) {
           assert(BOUND(j) >= 1);
           uncover(j);
