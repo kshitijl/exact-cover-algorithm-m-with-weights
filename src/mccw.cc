@@ -206,6 +206,7 @@ struct MCC {
     for (size_t i = 1; i < nodes.size(); ++i) {
       REMAINING_WEIGHT(i) = 0;
       LEN(i) = 0;
+      NLO_DIRTY(i) = true;
       ULINK(i) = DLINK(i) = i;
     }
     size_t m = 0;
@@ -323,6 +324,7 @@ struct MCC {
       REMAINING_WEIGHT(x) -= WEIGHT(q);
       assert(LEN(x) >= 1);
       LEN(x) -= 1;
+      NLO_DIRTY(x) = true;
     }
   }
 
@@ -343,6 +345,7 @@ struct MCC {
       ULINK(d) = q;
       REMAINING_WEIGHT(x) += WEIGHT(q);
       LEN(x) += 1;
+      NLO_DIRTY(x) = true;
     }
   }
 
@@ -420,6 +423,7 @@ struct MCC {
     REMAINING_WEIGHT(p) -= WEIGHT(x);
     assert(LEN(p) >= 1);
     LEN(p) -= 1;
+    NLO_DIRTY(p) = true;
   }
 
   void untweak(size_t a, size_t i) {
@@ -443,6 +447,7 @@ struct MCC {
     ULINK(z) = y;
     REMAINING_WEIGHT(p) += k;
     LEN(p) += num_items_added;
+    NLO_DIRTY(i) = true;
     if (special)
       uncover(p);
   }
@@ -495,6 +500,7 @@ struct MCC {
 
         assert(BOUND(j) >= WEIGHT(p));
         BOUND(j) -= WEIGHT(p);
+        NLO_DIRTY(p) = true;
 
         // LOG(2) << "try option working on node " << p << " with WEIGHT "
         //        << WEIGHT(p) << ", its top is " << j << " with old BOUND "
@@ -521,6 +527,7 @@ struct MCC {
         // ++BOUND(j);
         int old_bound = BOUND(j);
         BOUND(j) += WEIGHT(p);
+        NLO_DIRTY(p) = true;
         if (old_bound == 0) {
           assert(BOUND(j) >= 1);
           uncover(j);
@@ -669,13 +676,20 @@ struct MCC {
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
       int num_legal_options = 0;
 
-      if (!HAS_WEIGHTED_OPTIONS(i)) {
+      if (!HAS_WEIGHTED_OPTIONS(p)) {
         num_legal_options = LEN(p);
       } else {
-        for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
-          if (WEIGHT(o) <= BOUND(p)) {
-            num_legal_options += 1;
+        if (NLO_DIRTY(p)) {
+          for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
+            if (WEIGHT(o) <= BOUND(p)) {
+              num_legal_options += 1;
+            }
           }
+
+          NUM_LEGAL_OPTIONS(p) = num_legal_options;
+          NLO_DIRTY(p) = false;
+        } else {
+          num_legal_options = NUM_LEGAL_OPTIONS(p);
         }
       }
 
@@ -691,6 +705,10 @@ struct MCC {
            REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
         fewest_legal_options = s;
         i = p;
+
+        if (s == 1 && SLACK(p) == 0) {
+          break;
+        }
       }
     }
     INC(score, fewest_legal_options);
