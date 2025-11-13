@@ -658,42 +658,67 @@ struct MCC {
   }
 
   size_t choose_item(size_t l) {
-    int fewest_legal_options = std::numeric_limits<int>::max();
+    int best_branch_factor = std::numeric_limits<int>::max();
     size_t i = RLINK(0);
     INC(choices);
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
-      int num_legal_options = 0;
+      int branch_factor = 0;
 
       if (!HAS_WEIGHTED_OPTIONS(p)) {
-        num_legal_options = LEN(p);
+        branch_factor = monus(LEN(p) + 1, monus(BOUND(p), SLACK(p)));
       } else {
+
+        // Count how many options we'll actually try before backtracking
+        // We try options in order until remaining weight < remaining bound
+        int remaining_weight = REMAINING_WEIGHT(p);
+        int remaining_bound = BOUND(p);
+
         for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
-          if (WEIGHT(o) <= BOUND(p)) {
-            num_legal_options += 1;
+          // Can we try this option?
+          if (WEIGHT(o) <= remaining_bound) {
+            // After trying this option, will there be enough weight left
+            // to possibly satisfy the remaining bound?
+            int weight_after = remaining_weight - WEIGHT(o);
+            int bound_after = remaining_bound - WEIGHT(o);
+
+            // We can try this option if:
+            // bound_after - weight_after <= SLACK(p)
+            // i.e., we're not too far below the lower bound
+            if (bound_after - weight_after <= (int)SLACK(p)) {
+              branch_factor += 1;
+            }
           }
+          // Update running totals for suffix weight calculation
+          remaining_weight -= WEIGHT(o);
+        }
+
+        // Add 1 for the null branch if we have slack
+        // (or if we're already satisfied: bound <= 0)
+        if (SLACK(p) > 0 || BOUND(p) == 0) {
+          branch_factor += 1;
         }
       }
 
-      int s = num_legal_options + 1;
+      int s = branch_factor;
       if ((PARAM_prefer_sharp && s > 1 && NAME(p)[0] != '#') ||
           (PARAM_prefer_unsharp && s > 1 && NAME(p)[0] == '#')) {
         s += num_options;
       }
 
-      if (s < fewest_legal_options ||
-          (s == fewest_legal_options && SLACK(p) < SLACK(i)) ||
-          (s == fewest_legal_options && SLACK(p) == SLACK(i) &&
+      if (s < best_branch_factor ||
+          (s == best_branch_factor && SLACK(p) < SLACK(i)) ||
+          (s == best_branch_factor && SLACK(p) == SLACK(i) &&
            REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
-        fewest_legal_options = s;
+        best_branch_factor = s;
         i = p;
+      }
 
-        if (s == 1 && SLACK(p) == 0) {
-          break;
-        }
+      if (s == 0) {
+        break;
       }
     }
-    INC(score, fewest_legal_options);
-    score[l] = fewest_legal_options;
+    INC(score, best_branch_factor);
+    score[l] = best_branch_factor;
     ft[l] = 0;
     LOG(2) << "Chose i=" << i << " (" << NAME(i) << ")";
     return i;
