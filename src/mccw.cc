@@ -28,6 +28,7 @@ struct Node {
   int color = 0;
   int weight = 0;
   bool has_weighted_options = false;
+  size_t count_node = 0;
 };
 
 #define NAME(i) (nodes[i].name)
@@ -202,6 +203,11 @@ struct MCC {
       REMAINING_WEIGHT(i) = 0;
       LEN(i) = 0;
       ULINK(i) = DLINK(i) = i;
+
+      auto count_node = header.find(nodes[i].name + "_count");
+      if (count_node != header.end()) {
+        nodes[i].count_node = count_node->second;
+      }
     }
     size_t m = 0;
     size_t p = nodes.size();
@@ -801,7 +807,64 @@ struct MCC {
     while (true) {
       // M3. [Choose i.]
       size_t i = choose_item(l);
-      if (score[l] == 0) {
+      bool is_possible = true;
+
+      for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
+        if (!is_possible) {
+          break;
+        }
+        if (nodes[p].count_node != 0) {
+          size_t count_node = nodes[p].count_node;
+          LOG(2) << "Checking sum constraint possibility for " << p << "("
+                 << nodes[p].name << ") with count node " << count_node << " ("
+                 << nodes[count_node].name << ")";
+
+          int acc = 0;
+          int num = 0;
+          for (size_t it = ULINK(count_node); it != count_node;
+               it = ULINK(it)) {
+            acc += WEIGHT(it);
+            num++;
+            if (acc >= BOUND(count_node)) {
+              break;
+            }
+          }
+
+          LOG(2) << "We can have at most " << num
+                 << " options before count node is full up (its bound is "
+                 << BOUND(count_node) << ")";
+
+          // We can have AT MOST num options in order to achieve
+          // count_node's
+          // bound.
+
+          // Now let's see the weight of the top num options in p.
+
+          int p_acc = 0;
+          int p_num = 0;
+          for (size_t it = DLINK(p); it != p; it = DLINK(p)) {
+            p_acc += WEIGHT(it);
+            p_num++;
+
+            if (p_num >= num) {
+              break;
+            }
+          }
+
+          LOG(2) << "Weight of top " << num << " options in " << p << " is "
+                 << p_acc << ", and its BOUND is " << BOUND(p);
+
+          if (p_acc < BOUND(p)) {
+            is_possible = false;
+            break;
+          }
+        }
+      }
+
+      if (!is_possible) {
+        if (!backtrack(l, i))
+          return;
+      } else if (score[l] == 0) {
         INC(score_zero);
         if (!backtrack(l, i))
           return;
