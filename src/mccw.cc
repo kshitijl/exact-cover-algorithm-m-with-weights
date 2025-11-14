@@ -287,6 +287,32 @@ struct MCC {
     LOG(1) << "Parsed " << color_ids.size() << " colors";
     LOG(1) << "Parsed " << num_options << " options";
 
+    // Sort options by descending weight for each item
+    for (size_t i = 1; i <= num_items; ++i) {
+      if (LEN(i) <= 1)
+        continue; // Skip items with 0 or 1 options
+
+      // Collect all option nodes for this item
+      std::vector<size_t> option_nodes;
+      for (size_t p = DLINK(i); p != i; p = DLINK(p)) {
+        option_nodes.push_back(p);
+      }
+
+      // Sort by weight (descending)
+      std::sort(option_nodes.begin(), option_nodes.end(),
+                [this](size_t a, size_t b) { return WEIGHT(a) > WEIGHT(b); });
+
+      // Rebuild the circular doubly-linked list in sorted order
+      DLINK(i) = option_nodes[0];
+      ULINK(option_nodes[0]) = i;
+
+      for (size_t j = 0; j < option_nodes.size(); ++j) {
+        size_t curr = option_nodes[j];
+        size_t next = (j + 1 < option_nodes.size()) ? option_nodes[j + 1] : i;
+        DLINK(curr) = next;
+        ULINK(next) = curr;
+      }
+    }
     LOG(3) << "After parsing, memory is: " << debug_nodes();
     fclose(f);
 
