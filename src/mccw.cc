@@ -43,6 +43,7 @@ struct Node {
 #define WEIGHT(i) (nodes[i].weight)
 #define REMAINING_WEIGHT(i) (nodes[i].weight)
 #define HAS_WEIGHTED_OPTIONS(i) (nodes[i].has_weighted_options)
+#define OPTION_ROW(i) (nodes[i].llink) // For option nodes, LLINK stores the option row number
 #define MAX_LINE_SIZE (100000)
 
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
@@ -53,6 +54,7 @@ struct MCC {
   std::vector<size_t> ft;
   std::vector<size_t> score;
   std::vector<std::string> colors; // 1-indexed.
+  std::vector<bool> option_legal; // Buffer to track legal options during choose_item
   size_t num_items;
   size_t num_primary_items;
   size_t num_options;
@@ -267,6 +269,7 @@ struct MCC {
         TOP(p + j) = i;
         COLOR(p + j) = cnum;
         WEIGHT(p + j) = weight;
+        OPTION_ROW(p + j) = m; // Store which option row this node belongs to
       }
       if (curr == "\\" || seen.empty())
         continue;
@@ -319,6 +322,7 @@ struct MCC {
     choice = std::vector<size_t>(num_options);
     ft = std::vector<size_t>(num_options);
     score = std::vector<size_t>(num_options);
+    option_legal = std::vector<bool>(num_options); // Sized to number of options
     colors.resize(color_ids.size() + 1); // colors are 1-indexed.
     for (const auto &kv : color_ids) {
       colors[kv.second] = kv.first;
@@ -687,11 +691,33 @@ struct MCC {
     int best_branch_factor = std::numeric_limits<int>::max();
     size_t i = RLINK(0);
     INC(choices);
+
+    // Pass 1: Mark all options as legal or illegal based on bound constraints
+    std::fill(option_legal.begin(), option_legal.end(), true);
+
+    for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
+      // For each item, go through its option nodes and mark options that violate this item's bound
+      for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
+        if (BOUND(p) < WEIGHT(o)) {
+          // This option node violates the bound constraint on item p
+          option_legal[OPTION_ROW(o)] = false;
+        }
+      }
+    }
+
+    // Pass 2: Count branch factors, skipping illegal options
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
       int branch_factor = 0;
 
       if (!HAS_WEIGHTED_OPTIONS(p)) {
-        branch_factor = monus(LEN(p) + 1, monus(BOUND(p), SLACK(p)));
+        // Count legal options
+        int legal_count = 0;
+        for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
+          if (option_legal[OPTION_ROW(o)]) {
+            legal_count++;
+          }
+        }
+        branch_factor = monus(legal_count + 1, monus(BOUND(p), SLACK(p)));
       } else {
 
         // Count how many options we'll actually try before backtracking
@@ -700,6 +726,13 @@ struct MCC {
         int remaining_bound = BOUND(p);
 
         for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
+          // Skip illegal options
+          if (!option_legal[OPTION_ROW(o)]) {
+            // Still update running totals
+            remaining_weight -= WEIGHT(o);
+            continue;
+          }
+
           // Can we try this option?
           if (WEIGHT(o) <= remaining_bound) {
             // After trying this option, will there be enough weight left
