@@ -1,0 +1,101 @@
+make: Nothing to be done for `all'.
+2025-09-15-hard
+counter: [choices] = 5042202
+counter: [score] = 7807001 (avg: 1.54833)
+counter: [score_zero] = 1502377
+counter: [solutions] = 2764800
+
+real	0m1.163s
+user	0m1.153s
+sys	0m0.008s
+
+2025-10-18-hard
+counter: [choices] = 52773
+counter: [score] = 63236 (avg: 1.19826)
+counter: [score_zero] = 32088
+counter: [solutions] = 10464
+
+real	0m0.028s
+user	0m0.025s
+sys	0m0.002s
+
+2025-10-14-hard
+counter: [choices] = 888
+counter: [score] = 888
+counter: [score_zero] = 535
+counter: [solutions] = 1
+
+real	0m0.008s
+user	0m0.006s
+sys	0m0.001s
+
+2025-10-20-hard
+counter: [choices] = 29294
+counter: [score] = 31213 (avg: 1.06551)
+counter: [score_zero] = 16946
+counter: [solutions] = 1920
+
+real	0m0.018s
+user	0m0.016s
+sys	0m0.001s
+
+2025-10-29-hard
+counter: [choices] = 865
+counter: [score] = 998 (avg: 1.15376)
+counter: [score_zero] = 364
+counter: [solutions] = 134
+
+real	0m0.006s
+user	0m0.004s
+sys	0m0.001s
+
+2025-10-30-hard
+counter: [choices] = 2589
+counter: [score] = 2684 (avg: 1.03669)
+counter: [score_zero] = 1004
+counter: [solutions] = 96
+
+real	0m0.006s
+user	0m0.004s
+sys	0m0.001s
+
+2025-10-05-hard
+counter: [choices] = 2539
+counter: [score] = 2882 (avg: 1.13509)
+counter: [score_zero] = 1175
+counter: [solutions] = 344
+
+real	0m0.006s
+user	0m0.005s
+sys	0m0.001s
+
+2025-10-24-hard
+counter: [choices] = 66
+counter: [score] = 66
+counter: [score_zero] = 20
+counter: [solutions] = 1
+
+real	0m0.005s
+user	0m0.003s
+sys	0m0.001s
+
+2025-10-25-hard
+counter: [choices] = 3845
+counter: [score] = 3845
+counter: [score_zero] = 1951
+counter: [solutions] = 1
+
+real	0m0.008s
+user	0m0.007s
+sys	0m0.001s
+
+2025-10-28-hard
+counter: [choices] = 7689471
+counter: [score] = 7856194 (avg: 1.02168)
+counter: [score_zero] = 5317898
+counter: [solutions] = 166724
+
+real	0m5.307s
+user	0m5.285s
+sys	0m0.020s
+
