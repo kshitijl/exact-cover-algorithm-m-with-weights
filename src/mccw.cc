@@ -26,7 +26,6 @@ struct Node {
   size_t bound;
   int top_or_len;
   int color = 0;
-  int weight = 0;
   bool has_weighted_options = false;
 };
 
@@ -40,8 +39,8 @@ struct Node {
 #define COLOR(i) (nodes[i].color)
 #define SLACK(i) (nodes[i].slack)
 #define BOUND(i) (nodes[i].bound)
-#define WEIGHT(i) (nodes[i].weight)
-#define REMAINING_WEIGHT(i) (nodes[i].weight)
+#define WEIGHT(i) (nodes[i].rlink)
+#define REMAINING_WEIGHT(i) (nodes[i].top_or_len)
 #define HAS_WEIGHTED_OPTIONS(i) (nodes[i].has_weighted_options)
 #define OPTION_ROW(i) (nodes[i].llink)
 #define MAX_LINE_SIZE (100000)
@@ -707,6 +706,10 @@ struct MCC {
         if (BOUND(p) < WEIGHT(o)) {
           // This option node violates the bound constraint on item p
           option_legal[OPTION_ROW(o)] = false;
+        } else {
+          // The remaining options must be legal, because options are sorted in
+          // descending order within each item.
+          break;
         }
       }
     }
