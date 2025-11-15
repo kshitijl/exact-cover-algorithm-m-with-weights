@@ -43,7 +43,8 @@ struct Node {
 #define WEIGHT(i) (nodes[i].weight)
 #define REMAINING_WEIGHT(i) (nodes[i].weight)
 #define HAS_WEIGHTED_OPTIONS(i) (nodes[i].has_weighted_options)
-#define OPTION_ROW(i) (nodes[i].llink) // For option nodes, LLINK stores the option row number
+#define OPTION_ROW(i)                                                          \
+  (nodes[i].llink) // For option nodes, LLINK stores the option row number
 #define MAX_LINE_SIZE (100000)
 
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
@@ -54,7 +55,8 @@ struct MCC {
   std::vector<size_t> ft;
   std::vector<size_t> score;
   std::vector<std::string> colors; // 1-indexed.
-  std::vector<bool> option_legal; // Buffer to track legal options during choose_item
+  std::vector<bool>
+      option_legal; // Buffer to track legal options during choose_item
   size_t num_items;
   size_t num_primary_items;
   size_t num_options;
@@ -323,7 +325,7 @@ struct MCC {
     ft = std::vector<size_t>(num_options);
     score = std::vector<size_t>(num_options);
     option_legal = std::vector<bool>(num_options); // Sized to number of options
-    colors.resize(color_ids.size() + 1); // colors are 1-indexed.
+    colors.resize(color_ids.size() + 1);           // colors are 1-indexed.
     for (const auto &kv : color_ids) {
       colors[kv.second] = kv.first;
     }
@@ -696,7 +698,8 @@ struct MCC {
     std::fill(option_legal.begin(), option_legal.end(), true);
 
     for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
-      // For each item, go through its option nodes and mark options that violate this item's bound
+      // For each item, go through its option nodes and mark options that
+      // violate this item's bound
       for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
         if (BOUND(p) < WEIGHT(o)) {
           // This option node violates the bound constraint on item p
