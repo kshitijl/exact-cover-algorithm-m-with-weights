@@ -26,7 +26,6 @@ struct Node {
   size_t bound;
   int top_or_len;
   int color = 0;
-  bool has_weighted_options = false;
 };
 
 #define NAME(i) (nodes[i].name)
@@ -41,7 +40,7 @@ struct Node {
 #define BOUND(i) (nodes[i].bound)
 #define WEIGHT(i) (nodes[i].rlink)
 #define REMAINING_WEIGHT(i) (nodes[i].top_or_len)
-#define HAS_WEIGHTED_OPTIONS(i) (nodes[i].has_weighted_options)
+#define HAS_WEIGHTED_OPTIONS(i) (nodes[i].color)
 #define OPTION_ROW(i) (nodes[i].llink)
 #define MAX_LINE_SIZE (100000)
 
