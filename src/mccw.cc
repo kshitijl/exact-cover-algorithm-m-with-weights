@@ -252,7 +252,7 @@ struct MCC {
         // For each item, weight = sum of weights of options.
         REMAINING_WEIGHT(i) += weight;
         LEN(i)++;
-        if (weight != 1) {
+        if (weight > 1) {
           HAS_WEIGHTED_OPTIONS(i) = true;
         }
 
@@ -656,10 +656,6 @@ struct MCC {
       assert(TOP(choice[l]) == i);
       assert(WEIGHT(choice[l]) <= BOUND(i));
 
-      if (WEIGHT(choice[l]) == 0) {
-        return false;
-      }
-
       int remaining_bound = (int)BOUND(i) - (int)WEIGHT(choice[l]);
       int remaining_options_weight =
           (int)REMAINING_WEIGHT(i) - (int)WEIGHT(choice[l]);
@@ -706,18 +702,20 @@ struct MCC {
         for (size_t o = DLINK(p); o != p; o = DLINK(o)) {
           // Can we try this option?
           if (WEIGHT(o) <= remaining_bound) {
-            // After trying this option, will there be enough weight left?
+            // After trying this option, will there be enough weight left
+            // to possibly satisfy the remaining bound?
             int weight_after = remaining_weight - WEIGHT(o);
             int bound_after = remaining_bound - WEIGHT(o);
 
+            // We can try this option if:
+            // bound_after - weight_after <= SLACK(p)
+            // i.e., we're not too far below the lower bound
             if (bound_after - weight_after <= (int)SLACK(p)) {
               branch_factor += 1;
             }
-            // Only decrement if we actually considered this option
           }
+          // Update running totals for suffix weight calculation
           remaining_weight -= WEIGHT(o);
-          // Note: remaining_weight is NOT decremented when WEIGHT(o) >
-          // remaining_bound
         }
 
         // Add 1 for the null branch if we're already satisfied
@@ -744,18 +742,6 @@ struct MCC {
         break;
       }
     }
-
-    if (best_branch_factor == 0) {
-      // Defensive: if this item still has any options and its
-      // multiplicity/bounds aren't trivially impossible, treat the branch
-      // factor as at least 1.
-      for (size_t o = DLINK(i); o != i; o = DLINK(o)) {
-        // found at least one option; force nonzero branch factor
-        best_branch_factor = 1;
-        break;
-      }
-    }
-
     INC(score, best_branch_factor);
     score[l] = best_branch_factor;
     ft[l] = 0;
@@ -815,7 +801,6 @@ struct MCC {
     while (true) {
       // M3. [Choose i.]
       size_t i = choose_item(l);
-
       if (score[l] == 0) {
         INC(score_zero);
         if (!backtrack(l, i))
@@ -828,11 +813,10 @@ struct MCC {
 
         1. When to cover.
         Previously, once you'd chosen i, you knew whether or not to cover.
-        Because whatever option you took, you knew that you'd go down to BOUND
-        = 0 or not.
+        Because whatever option you took, you knew that you'd go down to BOUND =
+        0 or not.
 
-        Now, simply choosing i doesn't mean you know whether you need to
-        cover.
+        Now, simply choosing i doesn't mean you know whether you need to cover.
 
         Different options may or may not end up causing us to hit BOUND = 0.
 
