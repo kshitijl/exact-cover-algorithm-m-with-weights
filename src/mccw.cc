@@ -28,7 +28,6 @@ struct Node {
   int color = 0;
   int weight = 0;
   bool has_weighted_options = false;
-  size_t count_node = 0;
 };
 
 #define NAME(i) (nodes[i].name)
@@ -95,7 +94,7 @@ struct MCC {
         *curr = std::string(ss, i);
         std::string weight_s(&ss[i + 1]);
         int weight = std::stoi(weight_s);
-        CHECK(weight >= 0) << "Bad weight: " << weight;
+        CHECK(weight >= 1) << "Bad weight: " << weight;
         return {weight, true};
       }
     }
@@ -203,11 +202,6 @@ struct MCC {
       REMAINING_WEIGHT(i) = 0;
       LEN(i) = 0;
       ULINK(i) = DLINK(i) = i;
-
-      auto count_node = header.find(nodes[i].name + "_count");
-      if (count_node != header.end()) {
-        nodes[i].count_node = count_node->second;
-      }
     }
     size_t m = 0;
     size_t p = nodes.size();
@@ -253,7 +247,7 @@ struct MCC {
             << "Duplicate item '" << curr << "'";
         seen.insert(curr);
 
-        CHECK(weight >= 0) << "Bad weight: " << weight;
+        CHECK(weight >= 1) << "Bad weight: " << weight;
 
         // For each item, weight = sum of weights of options.
         REMAINING_WEIGHT(i) += weight;
@@ -827,153 +821,28 @@ struct MCC {
         if (!backtrack(l, i))
           return;
       } else {
+        // M4. [Prepare to branch on i.]
+        choice[l] = DLINK(i);
         /*
-                bool is_possible = true;
+        Two major problems:
 
-                for (size_t p = RLINK(0); p != 0; p = RLINK(p)) {
-                  if (!is_possible) {
-                    break;
-                  }
-                  if (nodes[p].count_node != 0) {
-                    if (BOUND(p) == 0) {
-                      continue;
-                    }
-                    size_t count_node = nodes[p].count_node;
-                    LOG(2) << "Checking sum constraint possibility for " << p <<
-           "("
-                           << nodes[p].name << ") with count node " <<
-           count_node
-                           << " (" << nodes[count_node].name << ")";
+        1. When to cover.
+        Previously, once you'd chosen i, you knew whether or not to cover.
+        Because whatever option you took, you knew that you'd go down to BOUND
+        = 0 or not.
 
-                    assert(p <= num_primary_items);
-                    assert(count_node <= num_primary_items);
-                    assert(SLACK(p) == 0);
-                    assert(SLACK(count_node) == 0);
+        Now, simply choosing i doesn't mean you know whether you need to
+        cover.
 
-                    CHECK(LEN(p) == LEN(count_node))
-                        << "fail " << p << " " << nodes[p].name << " " <<
-           count_node
-                        << " " << nodes[count_node].name << " " << LEN(p) << " "
-                        << LEN(count_node);
+        Different options may or may not end up causing us to hit BOUND = 0.
 
-                    int acc = 0;
-                    int num = 0;
-                    for (size_t it = ULINK(count_node); it != count_node;
-                         it = ULINK(it)) {
-                      acc += WEIGHT(it);
-                      num++;
-                      if (acc >= BOUND(count_node)) {
-                        break;
-                      }
-                    }
-
-                    LOG(2) << "We can have at most " << num
-                           << " options before count node is full up (its bound
-           is "
-                           << BOUND(count_node) << ")";
-
-                    // We can have AT MOST num options in order to achieve
-                    // count_node's
-                    // bound.
-
-                    // Now let's see the weight of the top num options in p.
-
-                    int p_acc = 0;
-                    int p_num = 0;
-                    for (size_t it = DLINK(p); it != p; it = DLINK(p)) {
-                      p_acc += WEIGHT(it);
-                      p_num++;
-
-                      if (p_num >= num) {
-                        break;
-                      }
-                    }
-
-                    LOG(2) << "Weight of top " << num << " options in " << p <<
-           " is "
-                           << p_acc << ", and its BOUND is " << BOUND(p);
-
-                    if (p_acc < BOUND(p)) {
-                      is_possible = false;
-                      break;
-                    }
-
-                    // Mirror check: we must take at least min_num options to
-           satisfy
-                    // count_node (when taking the heaviest options first), and
-           if even
-                    // the smallest min_num options from p exceed BOUND(p), it's
-                    // impossible.
-                    int acc_min = 0;
-                    int min_num = 0;
-                    for (size_t it = DLINK(count_node); it != count_node;
-                         it = DLINK(it)) {
-                      acc_min += WEIGHT(it);
-                      min_num++;
-                      if (acc_min >= BOUND(count_node)) {
-                        break;
-                      }
-                    }
-
-                    LOG(2) << "We must have at least " << min_num
-                           << " options to satisfy count node (taking heaviest
-           first)";
-
-                    int p_acc_bottom = 0;
-                    int p_num_bottom = 0;
-                    for (size_t it = ULINK(p); it != p; it = ULINK(it)) {
-                      p_acc_bottom += WEIGHT(it);
-                      p_num_bottom++;
-
-                      if (p_num_bottom >= min_num) {
-                        break;
-                      }
-                    }
-
-                    LOG(2) << "Weight of bottom " << min_num << " options in "
-           << p
-                           << " is " << p_acc_bottom << ", and its BOUND is "
-                           << BOUND(p);
-
-                    if (p_acc_bottom > BOUND(p)) {
-                      // is_possible = false;
-                      break;
-                    }
-                  }
-                }
-
-                is_possible = true;
-
-                */
-
-        bool is_possible = true;
-        if (!is_possible) {
-          if (!backtrack(l, i))
-            return;
-        } else {
-          // M4. [Prepare to branch on i.]
-          choice[l] = DLINK(i);
-          /*
-          Two major problems:
-
-          1. When to cover.
-          Previously, once you'd chosen i, you knew whether or not to cover.
-          Because whatever option you took, you knew that you'd go down to BOUND
-          = 0 or not.
-
-          Now, simply choosing i doesn't mean you know whether you need to
-          cover.
-
-          Different options may or may not end up causing us to hit BOUND = 0.
-
-          2. Illegal options i.e. those that would cause an item to go over
-          bounds.
-            */
-          // if (--BOUND(i) == 0)
-          //   cover(i);
-          if (BOUND(i) != 0 || SLACK(i) != 0)
-            ft[l] = choice[l];
-        }
+        2. Illegal options i.e. those that would cause an item to go over
+        bounds.
+          */
+        // if (--BOUND(i) == 0)
+        //   cover(i);
+        if (BOUND(i) != 0 || SLACK(i) != 0)
+          ft[l] = choice[l];
       }
 
       while (true) {
