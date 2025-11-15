@@ -348,8 +348,8 @@ struct MCC {
       // q is an option node, x is its item.
       assert(REMAINING_WEIGHT(x) >= WEIGHT(q));
       REMAINING_WEIGHT(x) -= WEIGHT(q);
-      assert(LEN(x) >= 1);
-      LEN(x) -= 1;
+      // assert(LEN(x) >= 1);
+      // LEN(x) -= 1;
     }
   }
 
@@ -369,7 +369,7 @@ struct MCC {
       DLINK(u) = q;
       ULINK(d) = q;
       REMAINING_WEIGHT(x) += WEIGHT(q);
-      LEN(x) += 1;
+      // LEN(x) += 1;
     }
   }
 
@@ -445,8 +445,8 @@ struct MCC {
     ULINK(d) = p;
     assert(REMAINING_WEIGHT(p) >= WEIGHT(x));
     REMAINING_WEIGHT(p) -= WEIGHT(x);
-    assert(LEN(p) >= 1);
-    LEN(p) -= 1;
+    // assert(LEN(p) >= 1);
+    // LEN(p) -= 1;
   }
 
   void untweak(size_t a, size_t i) {
@@ -456,12 +456,12 @@ struct MCC {
     size_t z = DLINK(p);
     DLINK(p) = x;
     size_t k = 0;
-    size_t num_items_added = 0;
+    // size_t num_items_added = 0;
     while (x != z) {
       ULINK(x) = y;
       // ++k;
       k += WEIGHT(x);
-      num_items_added++;
+      // num_items_added++;
       if (!special)
         unhide(x);
       y = x;
@@ -469,7 +469,7 @@ struct MCC {
     }
     ULINK(z) = y;
     REMAINING_WEIGHT(p) += k;
-    LEN(p) += num_items_added;
+    // LEN(p) += num_items_added;
     if (special)
       uncover(p);
   }
