@@ -43,8 +43,7 @@ struct Node {
 #define WEIGHT(i) (nodes[i].weight)
 #define REMAINING_WEIGHT(i) (nodes[i].weight)
 #define HAS_WEIGHTED_OPTIONS(i) (nodes[i].has_weighted_options)
-#define OPTION_ROW(i)                                                          \
-  (nodes[i].llink) // For option nodes, LLINK stores the option row number
+#define OPTION_ROW(i) (nodes[i].llink)
 #define MAX_LINE_SIZE (100000)
 
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
@@ -69,7 +68,7 @@ struct MCC {
       oss << i << ": { " << n.name << " l: " << n.llink << " r: " << n.rlink
           << " u: " << n.ulink << " d: " << n.dlink << " t: " << n.top_or_len
           << " c: " << n.color << " s: " << n.slack << " b: " << n.bound
-          << " w: " << n.weight << " }" << std::endl;
+          << " w: " << n.color << " }" << std::endl;
       ++i;
     }
     return oss.str();
@@ -204,7 +203,6 @@ struct MCC {
     // I3. [Prepare for options.]
     for (size_t i = 1; i < nodes.size(); ++i) {
       REMAINING_WEIGHT(i) = 0;
-      LEN(i) = 0;
       ULINK(i) = DLINK(i) = i;
     }
     size_t m = 0;
@@ -252,10 +250,11 @@ struct MCC {
         seen.insert(curr);
 
         CHECK(weight >= 1) << "Bad weight: " << weight;
+        CHECK(i <= num_primary_items || weight == 1)
+            << "Secondary items cannot have weighted options (" << ss << ")";
 
         // For each item, weight = sum of weights of options.
         REMAINING_WEIGHT(i) += weight;
-        LEN(i)++;
         if (weight > 1) {
           HAS_WEIGHTED_OPTIONS(i) = true;
         }
@@ -269,8 +268,11 @@ struct MCC {
         DLINK(p + j) = i;
         ULINK(i) = p + j;
         TOP(p + j) = i;
-        COLOR(p + j) = cnum;
-        WEIGHT(p + j) = weight;
+        if (i <= num_primary_items) {
+          WEIGHT(p + j) = weight;
+        } else {
+          COLOR(p + j) = cnum;
+        }
         OPTION_ROW(p + j) = m; // Store which option row this node belongs to
       }
       if (curr == "\\" || seen.empty())
@@ -294,14 +296,15 @@ struct MCC {
 
     // Sort options by descending weight for each item
     for (size_t i = 1; i <= num_items; ++i) {
-      if (LEN(i) <= 1)
-        continue; // Skip items with 0 or 1 options
-
       // Collect all option nodes for this item
       std::vector<size_t> option_nodes;
       for (size_t p = DLINK(i); p != i; p = DLINK(p)) {
         option_nodes.push_back(p);
       }
+
+      // Skip items with 0 or 1 options (nothing to sort)
+      if (option_nodes.size() <= 1)
+        continue;
 
       // Sort by weight (descending)
       std::sort(option_nodes.begin(), option_nodes.end(),
