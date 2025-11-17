@@ -43,7 +43,10 @@ struct Node {
 #define HAS_WEIGHTED_OPTIONS(i) (nodes[i].color)
 #define OPTION_ROW(i) (nodes[i].llink)
 #define MAX_LINE_SIZE (100000)
+
+#ifdef USING_WTD_HEURISTIC
 #define WTD(i) (wtd[i - 1])
+#endif
 
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
 
@@ -55,7 +58,11 @@ struct MCC {
   std::vector<std::string> colors; // 1-indexed.
   std::vector<bool>
       option_legal; // Buffer to track legal options during choose_item
+
+#ifdef USING_WTD_HEURISTIC
   std::vector<int> wtd;
+#endif
+
   size_t num_items;
   size_t num_primary_items;
   size_t num_options;
@@ -333,8 +340,10 @@ struct MCC {
       colors[kv.second] = kv.first;
     }
 
+#ifdef USING_WTD_HEURISTIC
     wtd = std::vector<int>(num_items);
     std::fill(wtd.begin(), wtd.end(), 1);
+#endif
   }
 
   // p: an option node
@@ -660,7 +669,10 @@ struct MCC {
         /* Currently not within limits, and since there are no more options, we
          * never will be. Do not deactivate this item, and therefore do not
          * visit solutions. */
+
+#ifdef USING_WTD_HEURISTIC
         WTD(i)++;
+#endif
         return false;
       }
     } else {
@@ -680,7 +692,9 @@ struct MCC {
         //           "bound "
         //        << remaining_bound << ", remaining options weight "
         //        << remaining_options_weight << ", SLACK " << SLACK(i);
+#ifdef USING_WTD_HEURISTIC
         WTD(i)++;
+#endif
         return false;
       } else {
         /* We have more options, and there's enough remaining weight on them
@@ -699,7 +713,9 @@ struct MCC {
 
   size_t choose_item(size_t l) {
     int best_branch_factor = std::numeric_limits<int>::max();
+#ifdef USING_WTD_HEURISTIC
     float best_wtd_score = 1e10;
+#endif
     size_t i = RLINK(0);
     INC(choices);
 
@@ -774,14 +790,19 @@ struct MCC {
       }
 
       int s = branch_factor;
+
+#ifdef USING_WTD_HEURISTIC
       float wtd_score = (float)branch_factor / (float)WTD(p);
+#endif
 
       if ((PARAM_prefer_sharp && s > 1 && NAME(p)[0] != '#') ||
           (PARAM_prefer_unsharp && s > 1 && NAME(p)[0] == '#')) {
         s += num_options;
       }
 
+#ifdef USING_WTD_HEURISTIC
       if (s <= 1 || best_branch_factor <= 1) {
+#endif
         if (s < best_branch_factor ||
             (s == best_branch_factor && SLACK(p) < SLACK(i)) ||
             (s == best_branch_factor && SLACK(p) == SLACK(i) &&
@@ -789,6 +810,7 @@ struct MCC {
           best_branch_factor = s;
           i = p;
         }
+#ifdef USING_WTD_HEURISTIC
       } else {
         if ((wtd_score < best_wtd_score) ||
             (wtd_score == best_wtd_score && s < best_branch_factor) ||
@@ -802,9 +824,12 @@ struct MCC {
           i = p;
         }
       }
+#endif
 
       if (s == 0) {
+#ifdef USING_WTD_HEURISTIC
         WTD(p)++;
+#endif
         break;
       }
     }
