@@ -43,6 +43,7 @@ struct Node {
 #define HAS_WEIGHTED_OPTIONS(i) (nodes[i].color)
 #define OPTION_ROW(i) (nodes[i].llink)
 #define MAX_LINE_SIZE (100000)
+#define WTD(i) (wtd[i - 1])
 
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
 
@@ -54,6 +55,7 @@ struct MCC {
   std::vector<std::string> colors; // 1-indexed.
   std::vector<bool>
       option_legal; // Buffer to track legal options during choose_item
+  std::vector<int> wtd;
   size_t num_items;
   size_t num_primary_items;
   size_t num_options;
@@ -330,6 +332,9 @@ struct MCC {
     for (const auto &kv : color_ids) {
       colors[kv.second] = kv.first;
     }
+
+    wtd = std::vector<int>(num_items);
+    std::fill(wtd.begin(), wtd.end(), 1);
   }
 
   // p: an option node
@@ -655,6 +660,7 @@ struct MCC {
         /* Currently not within limits, and since there are no more options, we
          * never will be. Do not deactivate this item, and therefore do not
          * visit solutions. */
+        WTD(i)++;
         return false;
       }
     } else {
@@ -674,6 +680,7 @@ struct MCC {
         //           "bound "
         //        << remaining_bound << ", remaining options weight "
         //        << remaining_options_weight << ", SLACK " << SLACK(i);
+        WTD(i)++;
         return false;
       } else {
         /* We have more options, and there's enough remaining weight on them
@@ -692,6 +699,7 @@ struct MCC {
 
   size_t choose_item(size_t l) {
     int best_branch_factor = std::numeric_limits<int>::max();
+    float best_wtd_score = 1e10;
     size_t i = RLINK(0);
     INC(choices);
 
@@ -766,20 +774,37 @@ struct MCC {
       }
 
       int s = branch_factor;
+      float wtd_score = (float)branch_factor / (float)WTD(p);
+
       if ((PARAM_prefer_sharp && s > 1 && NAME(p)[0] != '#') ||
           (PARAM_prefer_unsharp && s > 1 && NAME(p)[0] == '#')) {
         s += num_options;
       }
 
-      if (s < best_branch_factor ||
-          (s == best_branch_factor && SLACK(p) < SLACK(i)) ||
-          (s == best_branch_factor && SLACK(p) == SLACK(i) &&
-           REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
-        best_branch_factor = s;
-        i = p;
+      if (s <= 1 || best_branch_factor <= 1) {
+        if (s < best_branch_factor ||
+            (s == best_branch_factor && SLACK(p) < SLACK(i)) ||
+            (s == best_branch_factor && SLACK(p) == SLACK(i) &&
+             REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
+          best_branch_factor = s;
+          i = p;
+        }
+      } else {
+        if ((wtd_score < best_wtd_score) ||
+            (wtd_score == best_wtd_score && s < best_branch_factor) ||
+            (wtd_score == best_wtd_score && s == best_branch_factor &&
+             SLACK(p) < SLACK(i)) ||
+            (wtd_score == best_wtd_score && s == best_branch_factor &&
+             SLACK(p) == SLACK(i) &&
+             REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
+          best_wtd_score = wtd_score;
+          best_branch_factor = s;
+          i = p;
+        }
       }
 
       if (s == 0) {
+        WTD(p)++;
         break;
       }
     }
