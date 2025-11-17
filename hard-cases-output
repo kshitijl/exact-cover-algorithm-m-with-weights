@@ -5,18 +5,18 @@ counter: [score] = 7807001 (avg: 1.54833)
 counter: [score_zero] = 1502377
 counter: [solutions] = 2764800
 
-real	0m1.107s
-user	0m1.101s
-sys	0m0.004s
+real	0m1.123s
+user	0m1.117s
+sys	0m0.003s
 
 2025-10-18-hard
-counter: [choices] = 52773
-counter: [score] = 63236 (avg: 1.19826)
-counter: [score_zero] = 32088
+counter: [choices] = 52467
+counter: [score] = 62930 (avg: 1.19942)
+counter: [score_zero] = 32538
 counter: [solutions] = 10464
 
-real	0m0.028s
-user	0m0.025s
+real	0m0.026s
+user	0m0.023s
 sys	0m0.002s
 
 2025-10-14-hard
@@ -25,57 +25,57 @@ counter: [score] = 888
 counter: [score_zero] = 535
 counter: [solutions] = 1
 
-real	0m0.007s
+real	0m0.008s
 user	0m0.006s
 sys	0m0.001s
 
 2025-10-20-hard
-counter: [choices] = 29294
-counter: [score] = 31213 (avg: 1.06551)
-counter: [score_zero] = 16946
+counter: [choices] = 30162
+counter: [score] = 32081 (avg: 1.06362)
+counter: [score_zero] = 17592
 counter: [solutions] = 1920
 
 real	0m0.016s
-user	0m0.015s
+user	0m0.014s
 sys	0m0.001s
 
 2025-10-29-hard
-counter: [choices] = 865
-counter: [score] = 998 (avg: 1.15376)
-counter: [score_zero] = 364
+counter: [choices] = 768
+counter: [score] = 901 (avg: 1.17318)
+counter: [score_zero] = 335
 counter: [solutions] = 134
 
 real	0m0.005s
-user	0m0.004s
+user	0m0.003s
 sys	0m0.001s
 
 2025-10-30-hard
-counter: [choices] = 2589
-counter: [score] = 2684 (avg: 1.03669)
-counter: [score_zero] = 1004
+counter: [choices] = 2011
+counter: [score] = 2106 (avg: 1.04724)
+counter: [score_zero] = 759
 counter: [solutions] = 96
 
-real	0m0.005s
-user	0m0.004s
+real	0m0.004s
+user	0m0.003s
 sys	0m0.001s
 
 2025-10-05-hard
-counter: [choices] = 2539
-counter: [score] = 2882 (avg: 1.13509)
-counter: [score_zero] = 1175
+counter: [choices] = 2665
+counter: [score] = 3008 (avg: 1.12871)
+counter: [score_zero] = 1222
 counter: [solutions] = 344
 
-real	0m0.005s
+real	0m0.006s
 user	0m0.004s
 sys	0m0.001s
 
 2025-10-24-hard
-counter: [choices] = 66
-counter: [score] = 66
-counter: [score_zero] = 20
+counter: [choices] = 27
+counter: [score] = 27
+counter: [score_zero] = 6
 counter: [solutions] = 1
 
-real	0m0.004s
+real	0m0.005s
 user	0m0.003s
 sys	0m0.001s
 
@@ -90,12 +90,12 @@ user	0m0.006s
 sys	0m0.001s
 
 2025-10-28-hard
-counter: [choices] = 7689471
-counter: [score] = 7856194 (avg: 1.02168)
-counter: [score_zero] = 5317898
+counter: [choices] = 4689269
+counter: [score] = 4855992 (avg: 1.03555)
+counter: [score_zero] = 3112042
 counter: [solutions] = 166724
 
-real	0m5.059s
-user	0m5.051s
-sys	0m0.007s
+real	0m2.586s
+user	0m2.581s
+sys	0m0.004s
 
