@@ -18,22 +18,16 @@ DEFINE_PARAM(prefer_unsharp, 0,
 
 struct Node {
   std::string name;
-  int ulink;
-  int dlink;
-  int llink;
-  int rlink;
-  int slack;
-  int bound;
-  int top_or_len;
+  int ulink = 0;
+  int dlink = 0;
+  int llink = 0;
+  int rlink = 0;
+  int slack = 0;
+  int bound = 0;
+  int top_or_len = 0;
   int color = 0;
 };
 
-#define NAME(i) (nodes[i].name)
-#define LLINK(i) (nodes[i].llink)
-#define RLINK(i) (nodes[i].rlink)
-#define ULINK(i) (nodes[i].ulink)
-#define DLINK(i) (nodes[i].dlink)
-// #define COLOR(i) (nodes[i].color)
 #define MAX_LINE_SIZE (100000)
 
 #ifdef USING_WTD_HEURISTIC
@@ -45,7 +39,7 @@ inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
 struct MCC {
   std::vector<Node> nodes;
   std::vector<size_t> choice;
-  std::vector<size_t> ft;
+  std::vector<int> ft;
   std::vector<size_t> score;
   std::vector<std::string> colors; // 1-indexed.
   std::vector<bool>
@@ -117,6 +111,44 @@ struct MCC {
     return nodes[i].bound;
   }
 
+  int &RLINK(int i) {
+    assert(i >= 0);
+    assert(i <= num_items);
+    assert(i < nodes.size());
+
+    return nodes[i].rlink;
+  }
+
+  int &LLINK(int i) {
+    assert(i >= 0);
+    assert(i <= num_items);
+    assert(i < nodes.size());
+
+    return nodes[i].llink;
+  }
+
+  int &ULINK(int i) {
+    assert(i > 0);
+    assert(i < nodes.size());
+
+    return nodes[i].ulink;
+  }
+
+  int &DLINK(int i) {
+    assert(i > 0);
+    assert(i < nodes.size());
+
+    return nodes[i].dlink;
+  }
+
+  std::string &NAME(int i) {
+    assert(i > 0);
+    assert(i <= num_items);
+    assert(i < nodes.size());
+
+    return nodes[i].name;
+  }
+
   int &HAS_WEIGHTED_OPTIONS(int i) {
     assert(i > 0);
     assert(i <= num_items);
@@ -142,8 +174,8 @@ struct MCC {
     for (const Node &n : nodes) {
       oss << i << ": { " << n.name << " l: " << n.llink << " r: " << n.rlink
           << " u: " << n.ulink << " d: " << n.dlink << " t: " << n.top_or_len
-          << " c: " << n.color << " s: " << n.slack << " b: " << n.bound
-          << " w: " << n.color << " }" << std::endl;
+          << " c: " << n.color << " s: " << n.slack << " b: " << n.bound << " }"
+          << std::endl;
       ++i;
     }
     return oss.str();
@@ -409,7 +441,8 @@ struct MCC {
     fclose(f);
 
     choice = std::vector<size_t>(num_options);
-    ft = std::vector<size_t>(num_options);
+    ft = std::vector<int>(num_options);
+    std::fill(ft.begin(), ft.end(), -1);
     score = std::vector<size_t>(num_options);
     option_legal = std::vector<bool>(num_options); // Sized to number of options
     colors.resize(color_ids.size() + 1);           // colors are 1-indexed.
@@ -527,8 +560,9 @@ struct MCC {
   }
 
   // x: an option node
-  // p: an item node
+  // p: a primary item node
   void tweak(size_t x, size_t p) {
+    assert(p > 0);
     CHECK(p <= num_items);
     CHECK(p <= num_primary_items);
     CHECK(x == DLINK(p));
@@ -548,7 +582,10 @@ struct MCC {
     // LEN(p) -= 1;
   }
 
+  // i: a primary item node
   void untweak(size_t a, size_t i) {
+    assert(i > 0);
+    assert(i <= num_primary_items);
     bool special = BOUND(i) == 0;
     int p = a <= num_items ? a : TOP(a);
     size_t x = a, y = p;
