@@ -18,12 +18,12 @@ DEFINE_PARAM(prefer_unsharp, 0,
 
 struct Node {
   std::string name;
-  size_t ulink;
-  size_t dlink;
-  size_t llink;
-  size_t rlink;
-  size_t slack;
-  size_t bound;
+  int ulink;
+  int dlink;
+  int llink;
+  int rlink;
+  int slack;
+  int bound;
   int top_or_len;
   int color = 0;
 };
@@ -33,15 +33,7 @@ struct Node {
 #define RLINK(i) (nodes[i].rlink)
 #define ULINK(i) (nodes[i].ulink)
 #define DLINK(i) (nodes[i].dlink)
-#define TOP(i) (nodes[i].top_or_len)
-#define LEN(i) (nodes[i].top_or_len)
-#define COLOR(i) (nodes[i].color)
-#define SLACK(i) (nodes[i].slack)
-#define BOUND(i) (nodes[i].bound)
-#define WEIGHT(i) (nodes[i].rlink)
-#define REMAINING_WEIGHT(i) (nodes[i].top_or_len)
-#define HAS_WEIGHTED_OPTIONS(i) (nodes[i].color)
-#define OPTION_ROW(i) (nodes[i].llink)
+// #define COLOR(i) (nodes[i].color)
 #define MAX_LINE_SIZE (100000)
 
 #ifdef USING_WTD_HEURISTIC
@@ -66,6 +58,82 @@ struct MCC {
   size_t num_items;
   size_t num_primary_items;
   size_t num_options;
+
+  int &COLOR(int i) {
+    assert(i > 0);
+    assert(i > num_items);
+    assert(i < nodes.size());
+
+    return nodes[i].color;
+  }
+
+  int &ITEM_COLOR(int i) {
+    assert(i > 0);
+    assert(i > num_primary_items);
+    assert(i <= num_items);
+
+    return nodes[i].color;
+  }
+
+  int &OPTION_ROW(int i) {
+    assert(i > 0);
+    assert(i > num_items);
+    assert(i < nodes.size());
+
+    return nodes[i].llink;
+  }
+
+  int &TOP(int i) {
+    assert(i > 0);
+    assert(i > num_items);
+    assert(i < nodes.size());
+
+    return nodes[i].top_or_len;
+  }
+
+  int &WEIGHT(int i) {
+    assert(i > 0);
+    assert(i > num_items);
+    assert(i < nodes.size());
+
+    return nodes[i].rlink;
+  }
+
+  int &REMAINING_WEIGHT(int i) {
+    assert(i > 0);
+    assert(i <= num_items);
+    assert(i <= num_primary_items);
+    assert(i < nodes.size());
+
+    return nodes[i].top_or_len;
+  }
+
+  int &BOUND(int i) {
+    assert(i > 0);
+    assert(i <= num_items);
+    assert(i <= num_primary_items);
+    assert(i < nodes.size());
+
+    return nodes[i].bound;
+  }
+
+  int &HAS_WEIGHTED_OPTIONS(int i) {
+    assert(i > 0);
+    assert(i <= num_items);
+    assert(i <= num_primary_items);
+    assert(i < nodes.size());
+
+    return nodes[i].color;
+  }
+
+  int &SLACK(int i) {
+    assert(i > 0);
+    assert(i <= num_items);
+    assert(i <= num_primary_items);
+    assert(i < nodes.size());
+
+    return nodes[i].slack;
+  }
 
   std::string debug_nodes() {
     std::ostringstream oss;
@@ -209,7 +277,13 @@ struct MCC {
 
     // I3. [Prepare for options.]
     for (size_t i = 1; i < nodes.size(); ++i) {
-      REMAINING_WEIGHT(i) = 0;
+      if (i <= num_primary_items) {
+        REMAINING_WEIGHT(i) = 0;
+      } else if (i > num_primary_items && i <= num_items) {
+        // do nothing
+      } else {
+        assert(false);
+      }
       ULINK(i) = DLINK(i) = i;
     }
     size_t m = 0;
@@ -261,9 +335,12 @@ struct MCC {
             << "Secondary items cannot have weighted options (" << ss << ")";
 
         // For each item, weight = sum of weights of options.
-        REMAINING_WEIGHT(i) += weight;
-        if (weight > 1) {
-          HAS_WEIGHTED_OPTIONS(i) = true;
+
+        if (i <= num_primary_items) {
+          REMAINING_WEIGHT(i) += weight;
+          if (weight > 1) {
+            HAS_WEIGHTED_OPTIONS(i) = true;
+          }
         }
 
         size_t q = ULINK(i);
@@ -361,8 +438,10 @@ struct MCC {
       DLINK(u) = d;
       ULINK(d) = u;
       // q is an option node, x is its item.
-      assert(REMAINING_WEIGHT(x) >= WEIGHT(q));
-      REMAINING_WEIGHT(x) -= WEIGHT(q);
+      if (x <= num_primary_items) {
+        assert(REMAINING_WEIGHT(x) >= WEIGHT(q));
+        REMAINING_WEIGHT(x) -= WEIGHT(q);
+      }
       // assert(LEN(x) >= 1);
       // LEN(x) -= 1;
     }
@@ -383,7 +462,9 @@ struct MCC {
       } // q was a spacer.
       DLINK(u) = q;
       ULINK(d) = q;
-      REMAINING_WEIGHT(x) += WEIGHT(q);
+      if (x <= num_primary_items) {
+        REMAINING_WEIGHT(x) += WEIGHT(q);
+      }
       // LEN(x) += 1;
     }
   }
@@ -409,7 +490,7 @@ struct MCC {
   void purify(size_t p) {
     int c = COLOR(p), i = TOP(p);
     CHECK(i >= 0) << "Bad top value for " << p;
-    COLOR(i) = c;
+    ITEM_COLOR(i) = c;
     for (size_t q = DLINK(i); q != static_cast<size_t>(i); q = DLINK(q)) {
       if (COLOR(q) == c) {
         COLOR(q) = -1;
@@ -453,6 +534,9 @@ struct MCC {
     CHECK(x == DLINK(p));
     CHECK(p == ULINK(x));
     CHECK(COLOR(x) >= 0) << "Attempt to tweak non-primary?";
+    CHECK(x > num_items);
+    CHECK(x > num_primary_items);
+
     if (BOUND(p) != 0)
       hide(x);
     size_t d = DLINK(x);
@@ -853,9 +937,14 @@ struct MCC {
         oss << "  " << -TOP(r) << ": ";
         for (size_t p = ULINK(r); TOP(p) > 0; ++p) {
           size_t q = TOP(p);
+          assert(q > 0);
+          assert(q <= num_items);
           oss << NAME(q);
-          if (COLOR(q) > 0)
-            oss << ":" << colors[COLOR(q)];
+
+          if (q > num_primary_items) {
+            if (ITEM_COLOR(q) > 0)
+              oss << ":" << colors[ITEM_COLOR(q)];
+          }
           if (WEIGHT(p) != 1) {
             oss << "=" << WEIGHT(p);
           }
