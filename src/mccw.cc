@@ -809,7 +809,7 @@ struct MCC {
    * if currently satisfying then cover item
    * if currently not satisfying then don't cover and return false
   */
-  bool should_try(size_t l, size_t i) {
+  bool should_try(int l, int i) {
     /*
     Really we should split this into two cases:
     1. There are no more options to try: either we're satisfying or not
@@ -824,8 +824,10 @@ struct MCC {
     //        << ", SLACK(i) = " << SLACK(i)
     //        << ", REMAINING_WEIGHT(i) = " << REMAINING_WEIGHT(i);
 
+    assert(i > 0);
     assert(i <= num_items);
     assert(i <= num_primary_items);
+    assert(l < num_options);
 
     if (choice[l] == i) {
       // LOG(2) << "No more options to try";
