@@ -458,7 +458,11 @@ struct MCC {
 
   // p: an option node
   // removes every node in this option from its vertical item list, EXCEPT p
-  void hide(size_t p) {
+  void hide(int p) {
+    assert(p > 0);
+    assert(p > num_items);
+    assert(p < nodes.size());
+
     for (size_t q = p + 1; q != p; ++q) {
       if (COLOR(q) < 0)
         continue;
@@ -483,7 +487,11 @@ struct MCC {
   // p: an option node
   // re-inserts every node in this option into its vertical item list, EXCEPT p,
   // which wasn't removed.
-  void unhide(size_t p) {
+  void unhide(int p) {
+    assert(p > 0);
+    assert(p > num_items);
+    assert(p < nodes.size());
+
     for (size_t q = p - 1; q != p; --q) {
       if (COLOR(q) < 0)
         continue;
@@ -502,7 +510,11 @@ struct MCC {
     }
   }
 
-  void cover(size_t i) {
+  // i: an item node
+  void cover(int i) {
+    assert(i > 0);
+    assert(i <= num_items);
+
     for (size_t p = DLINK(i); p != i; p = DLINK(p)) {
       hide(p);
     }
@@ -511,7 +523,11 @@ struct MCC {
     LLINK(r) = l;
   }
 
-  void uncover(size_t i) {
+  // i: an item node
+  void uncover(int i) {
+    assert(i > 0);
+    assert(i <= num_items);
+
     size_t l = LLINK(i), r = RLINK(i);
     RLINK(l) = i;
     LLINK(r) = i;
@@ -520,7 +536,14 @@ struct MCC {
     }
   }
 
-  void purify(size_t p) {
+  // p: an option node for a secondary item
+  void purify(int p) {
+    assert(p > 0);
+    assert(p > num_items);
+    assert(p < nodes.size());
+    assert(TOP(p) <= num_items);
+    assert(TOP(p) > num_primary_items);
+
     int c = COLOR(p), i = TOP(p);
     CHECK(i >= 0) << "Bad top value for " << p;
     ITEM_COLOR(i) = c;
@@ -533,7 +556,14 @@ struct MCC {
     }
   }
 
-  void unpurify(size_t p) {
+  // p: an option node for a secondary item
+  void unpurify(int p) {
+    assert(p > 0);
+    assert(p > num_items);
+    assert(p < nodes.size());
+    assert(TOP(p) <= num_items);
+    assert(TOP(p) > num_primary_items);
+
     int c = COLOR(p), i = TOP(p);
     CHECK(i >= 0) << "Bad top value for " << p;
     for (size_t q = ULINK(i); q != static_cast<size_t>(i); q = ULINK(q)) {
@@ -610,7 +640,11 @@ struct MCC {
       uncover(p);
   }
   // x: an option node
-  bool can_try_option(size_t x) {
+  bool can_try_option(int x) {
+    assert(x > 0);
+    assert(x < nodes.size());
+    assert(x > num_items);
+
     size_t p = x;
 
     do {
@@ -629,7 +663,15 @@ struct MCC {
     return true;
   }
 
-  void tweak_illegal_options(size_t l, size_t i) {
+  // l: current level
+  // i: a primary item node
+  void tweak_illegal_options(int l, int i) {
+    assert(l >= 0);
+    assert(l < num_options);
+    assert(ft[l] != -1);
+    assert(i > 0);
+    assert(i <= num_primary_items);
+
     // LOG(2) << "Tweaking illegal options. choice[" << l << "] = " << choice[l]
     //        << ", i = " << i;
     // int k = 0;
@@ -674,9 +716,17 @@ struct MCC {
     } while (p != x);
   }
 
-  void try_again(size_t x) {
+  // x: an option node
+  void try_again(int x) {
+    assert(x > 0);
+    assert(x > num_items);
+    assert(x < nodes.size());
     size_t p = x - 1;
     do {
+      assert(p > 0);
+      assert(p > num_items);
+      assert(p < nodes.size());
+
       size_t j = TOP(p);
       if (TOP(p) <= 0) {
         p = DLINK(p) + 1;
@@ -698,7 +748,9 @@ struct MCC {
   }
 
   // Returns true iff backtracking was successful.
-  bool backtrack(size_t &l, size_t &i) {
+  bool backtrack(int &l, size_t &i) {
+    assert(l < num_options);
+
     while (true) {
       // M9. [Leave level l.]
       if (l == 0)
@@ -1013,7 +1065,7 @@ struct MCC {
   void solve_() {
     // M1. [Initialize.]
     INITCOUNTER(solutions);
-    size_t l = 0;
+    int l = 0;
 
     while (true) {
       // M3. [Choose i.]
@@ -1045,7 +1097,7 @@ struct MCC {
         if (BOUND(i) != 0 || SLACK(i) != 0)
           ft[l] = choice[l];
       }
-
+      LOG(3) << debug_nodes();
       while (true) {
         // LOG_EVERY_N_SECS_T(0, 1)
         //     << "sols: " << GETCOUNTER(solutions)
@@ -1057,8 +1109,10 @@ struct MCC {
         // Illegal options must be tweaked, so they won't be tried later.
         // Right now tweaking happens in should_try.
 
+        LOG(3) << debug_nodes();
         tweak_illegal_options(l, i);
 
+        LOG(3) << debug_nodes();
         if (should_try(l, i)) {
           // M6. [Try x_l.]
           LOG(2) << "Trying x_" << l << " = " << choice[l];
@@ -1074,6 +1128,7 @@ struct MCC {
           visit(l);
         } else {
           // M8. [Restore i.]
+          LOG(3) << debug_nodes();
           if (BOUND(i) == 0 && SLACK(i) == 0)
             uncover(i);
           else
