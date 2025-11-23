@@ -816,9 +816,8 @@ template <bool using_wtd_heuristic> struct MCC {
       assert(TOP(choice[l]) == i);
       assert(WEIGHT(choice[l]) <= BOUND(i));
 
-      int remaining_bound = (int)BOUND(i) - (int)WEIGHT(choice[l]);
-      int remaining_options_weight =
-          (int)REMAINING_WEIGHT(i) - (int)WEIGHT(choice[l]);
+      int remaining_bound = (int)BOUND(i);
+      int remaining_options_weight = (int)REMAINING_WEIGHT(i);
 
       if (remaining_bound - remaining_options_weight > (int)SLACK(i)) {
         /* Not enough remaining weight; abort this branch. */
