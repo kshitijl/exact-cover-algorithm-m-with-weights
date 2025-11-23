@@ -5,8 +5,8 @@ counter: [score] = 4652544 (avg: 2.4646)
 counter: [score_zero] = 2150
 counter: [solutions] = 2764800
 
-real	0m0.598s
-user	0m0.593s
+real	0m0.603s
+user	0m0.596s
 sys	0m0.003s
 
 2025-10-18-hard
@@ -15,8 +15,8 @@ counter: [score] = 61218 (avg: 1.20615)
 counter: [score_zero] = 31358
 counter: [solutions] = 10464
 
-real	0m0.030s
-user	0m0.026s
+real	0m0.029s
+user	0m0.025s
 sys	0m0.002s
 
 2025-10-14-hard
@@ -25,7 +25,7 @@ counter: [score] = 768
 counter: [score_zero] = 445
 counter: [solutions] = 1
 
-real	0m0.007s
+real	0m0.008s
 user	0m0.006s
 sys	0m0.001s
 
@@ -95,7 +95,7 @@ counter: [score] = 2745358 (avg: 1.06466)
 counter: [score_zero] = 1765845
 counter: [solutions] = 166724
 
-real	0m1.966s
-user	0m1.960s
+real	0m1.967s
+user	0m1.961s
 sys	0m0.005s
 

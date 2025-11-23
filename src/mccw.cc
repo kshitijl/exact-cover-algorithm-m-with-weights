@@ -30,28 +30,31 @@ struct Node {
 
 #define MAX_LINE_SIZE (100000)
 
-#ifdef USING_WTD_HEURISTIC
-#define WTD(i) (wtd[i - 1])
-#endif
-
 inline size_t monus(size_t x, size_t y) { return x > y ? x - y : 0; }
 
-struct MCC {
+template <bool using_wtd_heuristic> struct MCC {
   std::vector<Node> nodes;
   std::vector<size_t> choice;
   std::vector<int> ft;
   std::vector<size_t> score;
   std::vector<std::string> colors; // 1-indexed.
-  std::vector<bool>
-      option_legal; // Buffer to track legal options during choose_item
 
-#ifdef USING_WTD_HEURISTIC
+  // Buffer to track legal options during choose_item
+  std::vector<bool> option_legal;
+
   std::vector<int> wtd;
-#endif
 
   size_t num_items;
   size_t num_primary_items;
   size_t num_options;
+
+  __attribute__((always_inline)) inline int &WTD(int i) {
+    assert(i > 0);
+    assert(i <= num_primary_items);
+    assert(i < nodes.size());
+
+    return wtd[i - 1];
+  }
 
   __attribute__((always_inline)) inline int &COLOR(int i) {
     assert(i > 0);
@@ -366,8 +369,6 @@ struct MCC {
         CHECK(i <= num_primary_items || weight == 1)
             << "Secondary items cannot have weighted options (" << ss << ")";
 
-        // For each item, weight = sum of weights of options.
-
         if (i <= num_primary_items) {
           REMAINING_WEIGHT(i) += weight;
           if (weight > 1) {
@@ -389,7 +390,9 @@ struct MCC {
         } else {
           COLOR(p + j) = cnum;
         }
-        OPTION_ROW(p + j) = m; // Store which option row this node belongs to
+
+        // Store which option row this node belongs to
+        OPTION_ROW(p + j) = m;
       }
       if (curr == "\\" || seen.empty())
         continue;
@@ -440,21 +443,25 @@ struct MCC {
     LOG(3) << "After parsing, memory is: " << debug_nodes();
     fclose(f);
 
+    /* Each option could be chosen per level + a null branch for each item,
+     * where that item is chosen, we advance to choice[l] = i, and then visit a
+     * solution. */
     int max_level = num_options + num_items + 1;
     choice = std::vector<size_t>(max_level);
     ft = std::vector<int>(max_level);
     std::fill(ft.begin(), ft.end(), -1);
     score = std::vector<size_t>(max_level);
-    option_legal = std::vector<bool>(num_options); // Sized to number of options
-    colors.resize(color_ids.size() + 1);           // colors are 1-indexed.
+    option_legal = std::vector<bool>(num_options);
+
+    colors.resize(color_ids.size() + 1); // colors are 1-indexed.
     for (const auto &kv : color_ids) {
       colors[kv.second] = kv.first;
     }
 
-#ifdef USING_WTD_HEURISTIC
-    wtd = std::vector<int>(num_items);
-    std::fill(wtd.begin(), wtd.end(), 1);
-#endif
+    if (using_wtd_heuristic) {
+      wtd = std::vector<int>(num_items);
+      std::fill(wtd.begin(), wtd.end(), 1);
+    }
   }
 
   // p: an option node
@@ -480,8 +487,6 @@ struct MCC {
         assert(REMAINING_WEIGHT(x) >= WEIGHT(q));
         REMAINING_WEIGHT(x) -= WEIGHT(q);
       }
-      // assert(LEN(x) >= 1);
-      // LEN(x) -= 1;
     }
   }
 
@@ -507,7 +512,6 @@ struct MCC {
       if (x <= num_primary_items) {
         REMAINING_WEIGHT(x) += WEIGHT(q);
       }
-      // LEN(x) += 1;
     }
   }
 
@@ -609,8 +613,6 @@ struct MCC {
     ULINK(d) = p;
     assert(REMAINING_WEIGHT(p) >= WEIGHT(x));
     REMAINING_WEIGHT(p) -= WEIGHT(x);
-    // assert(LEN(p) >= 1);
-    // LEN(p) -= 1;
   }
 
   // i: a primary item node
@@ -624,12 +626,9 @@ struct MCC {
     size_t z = DLINK(p);
     DLINK(p) = x;
     size_t k = 0;
-    // size_t num_items_added = 0;
     while (x != z) {
       ULINK(x) = y;
-      // ++k;
       k += WEIGHT(x);
-      // num_items_added++;
       if (!special)
         unhide(x);
       y = x;
@@ -637,7 +636,6 @@ struct MCC {
     }
     ULINK(z) = y;
     REMAINING_WEIGHT(p) += k;
-    // LEN(p) += num_items_added;
     if (special)
       uncover(p);
   }
@@ -676,14 +674,10 @@ struct MCC {
 
     LOG(2) << "Tweaking illegal options. choice[" << l << "] = " << choice[l]
            << ", i = " << i;
-    // int k = 0;
     while (choice[l] != i && !can_try_option(choice[l])) {
-      // k++;
-      // LOG(2) << "Tweaking illegal option " << choice[l];
       tweak(choice[l], i);
       choice[l] = DLINK(choice[l]);
     }
-    // LOG(2) << "Tweaked " << k << " illegal options.";
   }
 
   // x: an option node
@@ -702,10 +696,6 @@ struct MCC {
 
         assert(BOUND(j) >= WEIGHT(p));
         BOUND(j) -= WEIGHT(p);
-
-        // LOG(2) << "try option working on node " << p << " with WEIGHT "
-        //        << WEIGHT(p) << ", its top is " << j << " with old BOUND "
-        //        << old_bound << ", new bound " << BOUND(j);
 
         if (BOUND(j) == 0)
           cover(j);
@@ -733,7 +723,6 @@ struct MCC {
       if (TOP(p) <= 0) {
         p = DLINK(p) + 1;
       } else if (j <= num_primary_items) {
-        // ++BOUND(j);
         int old_bound = BOUND(j);
         BOUND(j) += WEIGHT(p);
         if (old_bound == 0) {
@@ -774,9 +763,6 @@ struct MCC {
           uncover(i);
         else
           untweak(ft[l], i);
-        // TODO where's the --BOUND(p) corresponding to this?
-        // ++BOUND(i); // -> M9
-
       } else {
         i = TOP(choice[l]);
         CHECK(static_cast<int>(i) == TOP(choice[l]));
@@ -792,46 +778,11 @@ struct MCC {
     }
   }
 
-  /*
-  Maybe for illegal options we should tweak them but then return false?
-  NO.
-  When should_try returns false that means we've tried everything. We uncover
-  and untweak.
-  So maybe should_try should tweak in a loop? Until it's exhausted every option,
-  and then return false? Yes.
-  */
-  /*
-  TODO: the current question is: when we eventually get to the choice[l] == i
-  case, and we're under bound, what is supposed to happen?
-
-  Answer: the actual choices to put us in a satisfying state have happened above
-  us. If BOUND(i) == 0 then we would have covered before getting here. If we are
-  not in a satisfying state then the "return false" below will fire.
-
-  So if there are no more options to try, and we're in a satisfying state, and
-  we haven't already covered, then we should cover here because this item is no
-  longer active.
-  */
-  /*
-  If choice[l] = i i.e. no more options to try, then:
-   * if currently satisfying then cover item
-   * if currently not satisfying then don't cover and return false
-  */
   bool should_try(int l, int i) {
     /*
-    Really we should split this into two cases:
-    1. There are no more options to try: either we're satisfying or not
-    2. There are more options to try. Figure out if we can ever satisfy
-
     The semantics of BOUND are: it's the total remaining BOUND on i *before*
     trying any options at this level.
     */
-    // M5. [Possibly tweak x_l.]
-    // LOG(2) << "should try: l = " << l << ", i = " << i
-    //        << ", choice[l] = " << choice[l] << ", BOUND(i) = " << BOUND(i)
-    //        << ", SLACK(i) = " << SLACK(i)
-    //        << ", REMAINING_WEIGHT(i) = " << REMAINING_WEIGHT(i);
-
     assert(i > 0);
     assert(i <= num_items);
     assert(i <= num_primary_items);
@@ -839,7 +790,7 @@ struct MCC {
     assert(l < choice.size());
 
     if (choice[l] == i) {
-      // LOG(2) << "No more options to try";
+      /* No more options to try for this item, at this level. */
 
       if (BOUND(i) >= 0 && SLACK(i) >= BOUND(i)) {
         /* Currently within limits; we should deactivate this item and
@@ -854,13 +805,13 @@ struct MCC {
          * never will be. Do not deactivate this item, and therefore do not
          * visit solutions. */
 
-#ifdef USING_WTD_HEURISTIC
-        WTD(i)++;
-#endif
+        if (using_wtd_heuristic) {
+          WTD(i)++;
+        }
         return false;
       }
     } else {
-      // LOG(2) << "Yes more options to try (including this one).";
+      /* There are still options to try, including this one. */
 
       assert(TOP(choice[l]) == i);
       assert(WEIGHT(choice[l]) <= BOUND(i));
@@ -871,14 +822,9 @@ struct MCC {
 
       if (remaining_bound - remaining_options_weight > (int)SLACK(i)) {
         /* Not enough remaining weight; abort this branch. */
-        // LOG(2) << "Not enough remaining weight; abort this branch. Remaining
-        // "
-        //           "bound "
-        //        << remaining_bound << ", remaining options weight "
-        //        << remaining_options_weight << ", SLACK " << SLACK(i);
-#ifdef USING_WTD_HEURISTIC
-        WTD(i)++;
-#endif
+        if (using_wtd_heuristic) {
+          WTD(i)++;
+        }
         return false;
       } else {
         /* We have more options, and there's enough remaining weight on them
@@ -886,9 +832,6 @@ struct MCC {
          * the calling function will then include it in the solution (hide all
          * conflicting options) and potentially visit solutions.
          */
-        // LOG(2) << "We have more options and there's enough remaining weight
-        // on "
-        //           "them.";
         tweak(choice[l], i);
         return true;
       }
@@ -902,9 +845,8 @@ struct MCC {
     assert(l < score.size());
 
     int best_branch_factor = std::numeric_limits<int>::max();
-#ifdef USING_WTD_HEURISTIC
     float best_wtd_score = 1e10;
-#endif
+
     size_t i = RLINK(0);
     INC(choices);
 
@@ -979,19 +921,41 @@ struct MCC {
       }
 
       int s = branch_factor;
+      float wtd_score;
 
-#ifdef USING_WTD_HEURISTIC
-      float wtd_score = (float)branch_factor / (float)WTD(p);
-#endif
+      if (using_wtd_heuristic) {
+        wtd_score = (float)branch_factor / (float)WTD(p);
+      }
 
       if ((PARAM_prefer_sharp && s > 1 && NAME(p)[0] != '#') ||
           (PARAM_prefer_unsharp && s > 1 && NAME(p)[0] == '#')) {
         s += num_options;
       }
 
-#ifdef USING_WTD_HEURISTIC
-      if (s <= 1 || best_branch_factor <= 1) {
-#endif
+      if (using_wtd_heuristic) {
+        if (s <= 1 || best_branch_factor <= 1) {
+          if (s < best_branch_factor ||
+              (s == best_branch_factor && SLACK(p) < SLACK(i)) ||
+              (s == best_branch_factor && SLACK(p) == SLACK(i) &&
+               REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
+            best_branch_factor = s;
+            i = p;
+          }
+        } else {
+          if ((wtd_score < best_wtd_score) ||
+              (wtd_score == best_wtd_score && s < best_branch_factor) ||
+              (wtd_score == best_wtd_score && s == best_branch_factor &&
+               SLACK(p) < SLACK(i)) ||
+              (wtd_score == best_wtd_score && s == best_branch_factor &&
+               SLACK(p) == SLACK(i) &&
+               REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
+            best_wtd_score = wtd_score;
+            best_branch_factor = s;
+            i = p;
+          }
+        }
+      } else {
+
         if (s < best_branch_factor ||
             (s == best_branch_factor && SLACK(p) < SLACK(i)) ||
             (s == best_branch_factor && SLACK(p) == SLACK(i) &&
@@ -999,26 +963,12 @@ struct MCC {
           best_branch_factor = s;
           i = p;
         }
-#ifdef USING_WTD_HEURISTIC
-      } else {
-        if ((wtd_score < best_wtd_score) ||
-            (wtd_score == best_wtd_score && s < best_branch_factor) ||
-            (wtd_score == best_wtd_score && s == best_branch_factor &&
-             SLACK(p) < SLACK(i)) ||
-            (wtd_score == best_wtd_score && s == best_branch_factor &&
-             SLACK(p) == SLACK(i) &&
-             REMAINING_WEIGHT(p) > REMAINING_WEIGHT(i))) {
-          best_wtd_score = wtd_score;
-          best_branch_factor = s;
-          i = p;
-        }
       }
-#endif
 
       if (s == 0) {
-#ifdef USING_WTD_HEURISTIC
-        WTD(p)++;
-#endif
+        if (using_wtd_heuristic) {
+          WTD(p)++;
+        }
         break;
       }
     }
@@ -1093,37 +1043,10 @@ struct MCC {
       } else {
         // M4. [Prepare to branch on i.]
         choice[l] = DLINK(i);
-        /*
-        Two major problems:
-
-        1. When to cover.
-        Previously, once you'd chosen i, you knew whether or not to cover.
-        Because whatever option you took, you knew that you'd go down to BOUND =
-        0 or not.
-
-        Now, simply choosing i doesn't mean you know whether you need to cover.
-
-        Different options may or may not end up causing us to hit BOUND = 0.
-
-        2. Illegal options i.e. those that would cause an item to go over
-        bounds.
-          */
-        // if (--BOUND(i) == 0)
-        //   cover(i);
         if (BOUND(i) != 0 || SLACK(i) != 0)
           ft[l] = choice[l];
       }
       while (true) {
-        // LOG_EVERY_N_SECS_T(0, 1)
-        //     << "sols: " << GETCOUNTER(solutions)
-        //     << " done: " << std::setprecision(3) << progress(l) << "%";
-
-        // We could simply try to have should_try return false if anything would
-        // go over BOUND? Maybe another way to think of it is that we simply DO
-        // try on the illegal option, then backtrack.
-        // Illegal options must be tweaked, so they won't be tried later.
-        // Right now tweaking happens in should_try.
-
         tweak_illegal_options(l, i);
 
         if (should_try(l, i)) {
@@ -1145,7 +1068,6 @@ struct MCC {
             uncover(i);
           else
             untweak(ft[l], i);
-          // ++BOUND(i);
         }
 
         if (!backtrack(l, i))
@@ -1180,6 +1102,13 @@ int main(int argc, char **argv) {
   CHECK(!PARAM_prefer_sharp || !PARAM_prefer_unsharp)
       << "Both prefer_sharp and prefer_unsharp are set. Use only one.";
   init_counters();
-  MCC(argv[oidx]).solve();
+
+  bool using_wtd_heuristic = false;
+
+  if (using_wtd_heuristic) {
+    MCC<true>(argv[oidx]).solve();
+  } else {
+    MCC<false>(argv[oidx]).solve();
+  }
   return 0;
 }
