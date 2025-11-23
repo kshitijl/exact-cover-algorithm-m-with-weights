@@ -1,6 +1,6 @@
-CPPFLAGS=-g -O0 -Werror -Wall -Wno-psabi -mtune=native -march=native -std=c++20
+CPPFLAGS=-g -O3 -Werror -Wall -Wno-psabi -mtune=native -march=native -std=c++20
 ifndef OPT
-CPPFLAGS += -DLOGGING -DCOUNTERS -DTIMERS
+CPPFLAGS += -DLOGGING -DCOUNTERS -DTIMERS -DNDEBUG
 endif
 LDFLAGS=-g
 LDLIBS=

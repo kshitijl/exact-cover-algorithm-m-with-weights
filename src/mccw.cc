@@ -53,7 +53,7 @@ struct MCC {
   size_t num_primary_items;
   size_t num_options;
 
-  int &COLOR(int i) {
+  __attribute__((always_inline)) inline int &COLOR(int i) {
     assert(i > 0);
     assert(i > num_items);
     assert(i < nodes.size());
@@ -61,7 +61,7 @@ struct MCC {
     return nodes[i].color;
   }
 
-  int &ITEM_COLOR(int i) {
+  __attribute__((always_inline)) inline int &ITEM_COLOR(int i) {
     assert(i > 0);
     assert(i > num_primary_items);
     assert(i <= num_items);
@@ -69,7 +69,7 @@ struct MCC {
     return nodes[i].color;
   }
 
-  int &OPTION_ROW(int i) {
+  __attribute__((always_inline)) inline int &OPTION_ROW(int i) {
     assert(i > 0);
     assert(i > num_items);
     assert(i < nodes.size());
@@ -77,7 +77,7 @@ struct MCC {
     return nodes[i].llink;
   }
 
-  int &TOP(int i) {
+  __attribute__((always_inline)) inline int &TOP(int i) {
     assert(i > 0);
     assert(i > num_items);
     assert(i < nodes.size());
@@ -85,7 +85,7 @@ struct MCC {
     return nodes[i].top_or_len;
   }
 
-  int &WEIGHT(int i) {
+  __attribute__((always_inline)) inline int &WEIGHT(int i) {
     assert(i > 0);
     assert(i > num_items);
     assert(i < nodes.size());
@@ -93,7 +93,7 @@ struct MCC {
     return nodes[i].rlink;
   }
 
-  int &REMAINING_WEIGHT(int i) {
+  __attribute__((always_inline)) inline int &REMAINING_WEIGHT(int i) {
     assert(i > 0);
     assert(i <= num_items);
     assert(i <= num_primary_items);
@@ -102,7 +102,7 @@ struct MCC {
     return nodes[i].top_or_len;
   }
 
-  int &BOUND(int i) {
+  __attribute__((always_inline)) inline int &BOUND(int i) {
     assert(i > 0);
     assert(i <= num_items);
     assert(i <= num_primary_items);
@@ -111,7 +111,7 @@ struct MCC {
     return nodes[i].bound;
   }
 
-  int &RLINK(int i) {
+  __attribute__((always_inline)) inline int &RLINK(int i) {
     assert(i >= 0);
     assert(i <= num_items);
     assert(i < nodes.size());
@@ -119,7 +119,7 @@ struct MCC {
     return nodes[i].rlink;
   }
 
-  int &LLINK(int i) {
+  __attribute__((always_inline)) inline int &LLINK(int i) {
     assert(i >= 0);
     assert(i <= num_items);
     assert(i < nodes.size());
@@ -127,21 +127,21 @@ struct MCC {
     return nodes[i].llink;
   }
 
-  int &ULINK(int i) {
+  __attribute__((always_inline)) inline int &ULINK(int i) {
     assert(i > 0);
     assert(i < nodes.size());
 
     return nodes[i].ulink;
   }
 
-  int &DLINK(int i) {
+  __attribute__((always_inline)) inline int &DLINK(int i) {
     assert(i > 0);
     assert(i < nodes.size());
 
     return nodes[i].dlink;
   }
 
-  std::string &NAME(int i) {
+  __attribute__((always_inline)) inline std::string &NAME(int i) {
     assert(i > 0);
     assert(i <= num_items);
     assert(i < nodes.size());
@@ -149,7 +149,7 @@ struct MCC {
     return nodes[i].name;
   }
 
-  int &HAS_WEIGHTED_OPTIONS(int i) {
+  __attribute__((always_inline)) inline int &HAS_WEIGHTED_OPTIONS(int i) {
     assert(i > 0);
     assert(i <= num_items);
     assert(i <= num_primary_items);
@@ -158,7 +158,7 @@ struct MCC {
     return nodes[i].color;
   }
 
-  int &SLACK(int i) {
+  __attribute__((always_inline)) inline int &SLACK(int i) {
     assert(i > 0);
     assert(i <= num_items);
     assert(i <= num_primary_items);
@@ -440,10 +440,11 @@ struct MCC {
     LOG(3) << "After parsing, memory is: " << debug_nodes();
     fclose(f);
 
-    choice = std::vector<size_t>(num_options);
-    ft = std::vector<int>(num_options);
+    int max_level = num_options + num_items + 1;
+    choice = std::vector<size_t>(max_level);
+    ft = std::vector<int>(max_level);
     std::fill(ft.begin(), ft.end(), -1);
-    score = std::vector<size_t>(num_options);
+    score = std::vector<size_t>(max_level);
     option_legal = std::vector<bool>(num_options); // Sized to number of options
     colors.resize(color_ids.size() + 1);           // colors are 1-indexed.
     for (const auto &kv : color_ids) {
@@ -616,6 +617,7 @@ struct MCC {
   void untweak(size_t a, size_t i) {
     assert(i > 0);
     assert(i <= num_primary_items);
+
     bool special = BOUND(i) == 0;
     int p = a <= num_items ? a : TOP(a);
     size_t x = a, y = p;
@@ -667,13 +669,13 @@ struct MCC {
   // i: a primary item node
   void tweak_illegal_options(int l, int i) {
     assert(l >= 0);
-    assert(l < num_options);
+    assert(l < ft.size());
     assert(ft[l] != -1);
     assert(i > 0);
     assert(i <= num_primary_items);
 
-    // LOG(2) << "Tweaking illegal options. choice[" << l << "] = " << choice[l]
-    //        << ", i = " << i;
+    LOG(2) << "Tweaking illegal options. choice[" << l << "] = " << choice[l]
+           << ", i = " << i;
     // int k = 0;
     while (choice[l] != i && !can_try_option(choice[l])) {
       // k++;
@@ -686,7 +688,7 @@ struct MCC {
 
   // x: an option node
   void try_option(size_t x) {
-    // LOG(2) << "try_option called on node " << x;
+    LOG(2) << "try_option called on node " << x;
 
     size_t p = x;
 
@@ -748,8 +750,10 @@ struct MCC {
   }
 
   // Returns true iff backtracking was successful.
-  bool backtrack(int &l, size_t &i) {
-    assert(l < num_options);
+  bool backtrack(int &l, int &i) {
+    assert(l >= 0);
+    assert(l < ft.size());
+    assert(l < choice.size());
 
     while (true) {
       // M9. [Leave level l.]
@@ -757,6 +761,7 @@ struct MCC {
         return false;
       assert(l > 0);
       --l;
+      assert(l >= 0);
       if (choice[l] <= num_items) {
         i = choice[l];
         size_t p = LLINK(i);
@@ -779,6 +784,9 @@ struct MCC {
         // M7. [Try again.]
         try_again(choice[l]);
         choice[l] = DLINK(choice[l]);
+
+        assert(l >= 0);
+        assert(l < choice.size());
         return true; // -> M5
       }
     }
@@ -827,7 +835,8 @@ struct MCC {
     assert(i > 0);
     assert(i <= num_items);
     assert(i <= num_primary_items);
-    assert(l < num_options);
+    assert(l >= 0);
+    assert(l < choice.size());
 
     if (choice[l] == i) {
       // LOG(2) << "No more options to try";
@@ -886,7 +895,12 @@ struct MCC {
     }
   }
 
-  size_t choose_item(size_t l) {
+  size_t choose_item(int l) {
+    assert(l >= 0);
+    assert(l < ft.size());
+    assert(l < choice.size());
+    assert(l < score.size());
+
     int best_branch_factor = std::numeric_limits<int>::max();
 #ifdef USING_WTD_HEURISTIC
     float best_wtd_score = 1e10;
@@ -1071,7 +1085,7 @@ struct MCC {
 
     while (true) {
       // M3. [Choose i.]
-      size_t i = choose_item(l);
+      int i = choose_item(l);
       if (score[l] == 0) {
         INC(score_zero);
         if (!backtrack(l, i))
@@ -1099,7 +1113,6 @@ struct MCC {
         if (BOUND(i) != 0 || SLACK(i) != 0)
           ft[l] = choice[l];
       }
-      LOG(3) << debug_nodes();
       while (true) {
         // LOG_EVERY_N_SECS_T(0, 1)
         //     << "sols: " << GETCOUNTER(solutions)
@@ -1111,10 +1124,8 @@ struct MCC {
         // Illegal options must be tweaked, so they won't be tried later.
         // Right now tweaking happens in should_try.
 
-        LOG(3) << debug_nodes();
         tweak_illegal_options(l, i);
 
-        LOG(3) << debug_nodes();
         if (should_try(l, i)) {
           // M6. [Try x_l.]
           LOG(2) << "Trying x_" << l << " = " << choice[l];
@@ -1130,7 +1141,6 @@ struct MCC {
           visit(l);
         } else {
           // M8. [Restore i.]
-          LOG(3) << debug_nodes();
           if (BOUND(i) == 0 && SLACK(i) == 0)
             uncover(i);
           else
@@ -1141,6 +1151,10 @@ struct MCC {
         if (!backtrack(l, i))
           return;
       }
+
+      assert(l >= 0);
+      assert(l < choice.size());
+      assert(l < ft.size());
     }
   }
 
