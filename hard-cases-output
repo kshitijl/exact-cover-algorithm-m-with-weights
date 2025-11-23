@@ -1,28 +1,28 @@
 make: Nothing to be done for `all'.
 2025-09-15-hard
-counter: [choices] = 5042202
-counter: [score] = 7807001 (avg: 1.54833)
-counter: [score_zero] = 1502377
+counter: [choices] = 1887745
+counter: [score] = 4652544 (avg: 2.4646)
+counter: [score_zero] = 2150
 counter: [solutions] = 2764800
 
-real	0m1.123s
-user	0m1.117s
-sys	0m0.003s
+real	0m0.601s
+user	0m0.596s
+sys	0m0.004s
 
 2025-10-18-hard
-counter: [choices] = 52467
-counter: [score] = 62930 (avg: 1.19942)
-counter: [score_zero] = 32538
+counter: [choices] = 50755
+counter: [score] = 61218 (avg: 1.20615)
+counter: [score_zero] = 31358
 counter: [solutions] = 10464
 
-real	0m0.026s
-user	0m0.023s
+real	0m0.030s
+user	0m0.026s
 sys	0m0.002s
 
 2025-10-14-hard
-counter: [choices] = 888
-counter: [score] = 888
-counter: [score_zero] = 535
+counter: [choices] = 768
+counter: [score] = 768
+counter: [score_zero] = 445
 counter: [solutions] = 1
 
 real	0m0.008s
@@ -30,9 +30,9 @@ user	0m0.006s
 sys	0m0.001s
 
 2025-10-20-hard
-counter: [choices] = 30162
-counter: [score] = 32081 (avg: 1.06362)
-counter: [score_zero] = 17592
+counter: [choices] = 23926
+counter: [score] = 25845 (avg: 1.08021)
+counter: [score_zero] = 15220
 counter: [solutions] = 1920
 
 real	0m0.016s
@@ -40,9 +40,9 @@ user	0m0.014s
 sys	0m0.001s
 
 2025-10-29-hard
-counter: [choices] = 768
-counter: [score] = 901 (avg: 1.17318)
-counter: [score_zero] = 335
+counter: [choices] = 733
+counter: [score] = 866 (avg: 1.18145)
+counter: [score_zero] = 311
 counter: [solutions] = 134
 
 real	0m0.005s
@@ -50,52 +50,52 @@ user	0m0.003s
 sys	0m0.001s
 
 2025-10-30-hard
-counter: [choices] = 2011
-counter: [score] = 2106 (avg: 1.04724)
-counter: [score_zero] = 759
+counter: [choices] = 823
+counter: [score] = 918 (avg: 1.11543)
+counter: [score_zero] = 268
 counter: [solutions] = 96
+
+real	0m0.004s
+user	0m0.002s
+sys	0m0.001s
+
+2025-10-05-hard
+counter: [choices] = 2486
+counter: [score] = 2829 (avg: 1.13797)
+counter: [score_zero] = 1138
+counter: [solutions] = 344
+
+real	0m0.005s
+user	0m0.004s
+sys	0m0.001s
+
+2025-10-24-hard
+counter: [choices] = 26
+counter: [score] = 26
+counter: [score_zero] = 5
+counter: [solutions] = 1
 
 real	0m0.004s
 user	0m0.003s
 sys	0m0.001s
 
-2025-10-05-hard
-counter: [choices] = 2665
-counter: [score] = 3008 (avg: 1.12871)
-counter: [score_zero] = 1222
-counter: [solutions] = 344
-
-real	0m0.006s
-user	0m0.004s
-sys	0m0.001s
-
-2025-10-24-hard
-counter: [choices] = 27
-counter: [score] = 27
-counter: [score_zero] = 6
-counter: [solutions] = 1
-
-real	0m0.005s
-user	0m0.003s
-sys	0m0.001s
-
 2025-10-25-hard
-counter: [choices] = 3845
-counter: [score] = 3845
-counter: [score_zero] = 1951
+counter: [choices] = 3531
+counter: [score] = 3531
+counter: [score_zero] = 1835
 counter: [solutions] = 1
 
-real	0m0.008s
+real	0m0.007s
 user	0m0.006s
 sys	0m0.001s
 
 2025-10-28-hard
-counter: [choices] = 4689269
-counter: [score] = 4855992 (avg: 1.03555)
-counter: [score_zero] = 3112042
+counter: [choices] = 2578635
+counter: [score] = 2745358 (avg: 1.06466)
+counter: [score_zero] = 1765845
 counter: [solutions] = 166724
 
-real	0m2.586s
-user	0m2.581s
-sys	0m0.004s
+real	0m1.974s
+user	0m1.966s
+sys	0m0.007s
 
